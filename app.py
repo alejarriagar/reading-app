@@ -1,4 +1,4 @@
-﻿import json
+import json
 import uuid
 from pathlib import Path
 
@@ -133,7 +133,11 @@ def get_authors(progress):
 
 
 def get_books(progress):
-    return BOOKS + progress["custom_books"]
+    metadata = progress.get("book_metadata", {})
+    return [
+        {**book, **metadata.get(book["id"], {})}
+        for book in BOOKS + progress["custom_books"]
+    ]
 
 
 def book_status(book_id, progress):
@@ -401,8 +405,12 @@ with library_tab:
                 )
             )
             rows.append({
+                "Año": book.get("year", ""),
                 "Obra": book["title"],
                 "Autor": author_name,
+                "Nota": book.get("rating") if book.get("rating") is not None else "",
+                "Relectura": "Sí" if book.get("reread") else "",
+                "Notas personales": book.get("notes", ""),
                 "Estado": status,
                 "Territorios": region_names,
             })
