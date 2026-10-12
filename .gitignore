@@ -5,3 +5,8 @@ __pycache__/
 .env
 reading_progress.json
 import_reading_history.py
+reading_progress*.json
+reading_progress*.tmp
+app.legacy.py
+_ui_backup/
+_install_atlas_ui.py

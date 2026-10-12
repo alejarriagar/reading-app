@@ -1,0 +1,830 @@
+{
+  "paths": [
+    {
+      "id": "us_xx",
+      "name": "🇺🇸 Estados Unidos · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "us_literature"
+      ],
+      "authors": [
+        {
+          "id": "faulkner",
+          "name": "William Faulkner",
+          "short": "Faulkner",
+          "tier": "ESSENTIAL",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Mientras agonizo",
+              "year": 1930,
+              "aliases": []
+            },
+            {
+              "title": "El ruido y la furia",
+              "year": 1929,
+              "aliases": []
+            },
+            {
+              "title": "Luz de agosto",
+              "year": 1932,
+              "aliases": []
+            },
+            {
+              "title": "¡Absalón, Absalón!",
+              "year": 1936,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "hemingway",
+          "name": "Ernest Hemingway",
+          "short": "Hemingway",
+          "tier": "ESSENTIAL",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El viejo y el mar",
+              "year": 1952,
+              "aliases": []
+            },
+            {
+              "title": "Fiesta",
+              "year": 1926,
+              "aliases": [
+                "The Sun Also Rises"
+              ]
+            },
+            {
+              "title": "Adiós a las armas",
+              "year": 1929,
+              "aliases": []
+            },
+            {
+              "title": "Por quién doblan las campanas",
+              "year": 1940,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "fitzgerald",
+          "name": "F. Scott Fitzgerald",
+          "short": "Fitzgerald",
+          "tier": "ESSENTIAL",
+          "country": "Estados Unidos",
+          "aliases": [
+            "Scott Fitzgerald",
+            "Francis Scott Fitzgerald"
+          ],
+          "works": [
+            {
+              "title": "El gran Gatsby",
+              "year": 1925,
+              "aliases": []
+            },
+            {
+              "title": "Suave es la noche",
+              "year": 1934,
+              "aliases": []
+            },
+            {
+              "title": "A este lado del paraíso",
+              "year": 1920,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "steinbeck",
+          "name": "John Steinbeck",
+          "short": "Steinbeck",
+          "tier": "ESSENTIAL",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "De ratones y hombres",
+              "year": 1937,
+              "aliases": []
+            },
+            {
+              "title": "Las uvas de la ira",
+              "year": 1939,
+              "aliases": []
+            },
+            {
+              "title": "Al este del Edén",
+              "year": 1952,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "morrison",
+          "name": "Toni Morrison",
+          "short": "Morrison",
+          "tier": "ESSENTIAL",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Beloved",
+              "year": 1987,
+              "aliases": [
+                "Amada"
+              ]
+            },
+            {
+              "title": "Ojos azules",
+              "year": 1970,
+              "aliases": []
+            },
+            {
+              "title": "La canción de Salomón",
+              "year": 1977,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "nabokov",
+          "name": "Vladimir Nabokov",
+          "short": "Nabokov",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Lolita",
+              "year": 1955,
+              "aliases": []
+            },
+            {
+              "title": "Pnin",
+              "year": 1957,
+              "aliases": []
+            },
+            {
+              "title": "Pálido fuego",
+              "year": 1962,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "salinger",
+          "name": "J. D. Salinger",
+          "short": "Salinger",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [
+            "J.D. Salinger",
+            "Salinger"
+          ],
+          "works": [
+            {
+              "title": "El guardián entre el centeno",
+              "year": 1951,
+              "aliases": [
+                "El cazador oculto"
+              ]
+            },
+            {
+              "title": "Nueve cuentos",
+              "year": 1953,
+              "aliases": []
+            },
+            {
+              "title": "Franny y Zooey",
+              "year": 1961,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "roth",
+          "name": "Philip Roth",
+          "short": "Roth",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Pastoral americana",
+              "year": 1997,
+              "aliases": []
+            },
+            {
+              "title": "La mancha humana",
+              "year": 2000,
+              "aliases": []
+            },
+            {
+              "title": "El lamento de Portnoy",
+              "year": 1969,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "mccarthy",
+          "name": "Cormac McCarthy",
+          "short": "McCarthy",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La carretera",
+              "year": 2006,
+              "aliases": []
+            },
+            {
+              "title": "No es país para viejos",
+              "year": 2005,
+              "aliases": []
+            },
+            {
+              "title": "Meridiano de sangre",
+              "year": 1985,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "bradbury",
+          "name": "Ray Bradbury",
+          "short": "Bradbury",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Fahrenheit 451",
+              "year": 1953,
+              "aliases": [
+                "Farenheit 451"
+              ]
+            },
+            {
+              "title": "Crónicas marcianas",
+              "year": 1950,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "vonnegut",
+          "name": "Kurt Vonnegut",
+          "short": "Vonnegut",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Matadero cinco",
+              "year": 1969,
+              "aliases": [
+                "Matadero 5"
+              ]
+            },
+            {
+              "title": "Cuna de gato",
+              "year": 1963,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "carver",
+          "name": "Raymond Carver",
+          "short": "Carver",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "De qué hablamos cuando hablamos de amor",
+              "year": 1981,
+              "aliases": []
+            },
+            {
+              "title": "Catedral",
+              "year": 1983,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "plath",
+          "name": "Sylvia Plath",
+          "short": "Plath",
+          "tier": "RECOMMENDED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La campana de cristal",
+              "year": 1963,
+              "aliases": []
+            },
+            {
+              "title": "Ariel",
+              "year": 1965,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "buck",
+          "name": "Pearl S. Buck",
+          "short": "Pearl S. Buck",
+          "tier": "SPECIALIZED",
+          "country": "Estados Unidos",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La buena tierra",
+              "year": 1931,
+              "aliases": []
+            },
+            {
+              "title": "Viento del este, viento del oeste",
+              "year": 1930,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ru_xix",
+      "name": "🇷🇺 Rusia · Siglo XIX",
+      "period": "Siglo XIX",
+      "region_ids": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ],
+      "authors": [
+        {
+          "id": "dostoevsky",
+          "name": "Fiódor Dostoyevski",
+          "short": "Dostoyevski",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [
+            "Fiodor Dostoievsky",
+            "Fiódor Dostoievski",
+            "Dostoyevski"
+          ],
+          "works": [
+            {
+              "title": "Crimen y castigo",
+              "year": 1866,
+              "aliases": []
+            },
+            {
+              "title": "Memorias del subsuelo",
+              "year": 1864,
+              "aliases": []
+            },
+            {
+              "title": "El idiota",
+              "year": 1869,
+              "aliases": []
+            },
+            {
+              "title": "Los hermanos Karamázov",
+              "year": 1880,
+              "aliases": [
+                "Los hermanos Karamazov"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tolstoy",
+          "name": "León Tolstói",
+          "short": "Tolstói",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [
+            "Lev Tolstói",
+            "Leon Tolstoi"
+          ],
+          "works": [
+            {
+              "title": "La muerte de Iván Ilich",
+              "year": 1886,
+              "aliases": []
+            },
+            {
+              "title": "Ana Karénina",
+              "year": 1877,
+              "aliases": [
+                "Ana Karenina"
+              ]
+            },
+            {
+              "title": "Guerra y paz",
+              "year": 1869,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "chekhov",
+          "name": "Antón Chéjov",
+          "short": "Chéjov",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La dama del perrito",
+              "year": 1899,
+              "aliases": []
+            },
+            {
+              "title": "La gaviota",
+              "year": 1896,
+              "aliases": []
+            },
+            {
+              "title": "El jardín de los cerezos",
+              "year": 1904,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "gogol",
+          "name": "Nikolái Gógol",
+          "short": "Gógol",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El capote",
+              "year": 1842,
+              "aliases": []
+            },
+            {
+              "title": "La nariz",
+              "year": 1836,
+              "aliases": []
+            },
+            {
+              "title": "Almas muertas",
+              "year": 1842,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "pushkin",
+          "name": "Aleksandr Pushkin",
+          "short": "Pushkin",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La hija del capitán",
+              "year": 1836,
+              "aliases": []
+            },
+            {
+              "title": "Eugenio Oneguin",
+              "year": 1833,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "turgenev",
+          "name": "Iván Turguénev",
+          "short": "Turguénev",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Padres e hijos",
+              "year": 1862,
+              "aliases": []
+            },
+            {
+              "title": "Primer amor",
+              "year": 1860,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "lermontov",
+          "name": "Mijaíl Lérmontov",
+          "short": "Lérmontov",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Un héroe de nuestro tiempo",
+              "year": 1840,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "goncharov",
+          "name": "Iván Goncharov",
+          "short": "Goncharov",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Oblómov",
+              "year": 1859,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "es_xx",
+      "name": "🇪🇸 España · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "es_xx"
+      ],
+      "authors": [
+        {
+          "id": "lorca",
+          "name": "Federico García Lorca",
+          "short": "García Lorca",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La casa de Bernarda Alba",
+              "year": 1936,
+              "aliases": []
+            },
+            {
+              "title": "Bodas de sangre",
+              "year": 1933,
+              "aliases": []
+            },
+            {
+              "title": "Romancero gitano",
+              "year": 1928,
+              "aliases": []
+            },
+            {
+              "title": "Poeta en Nueva York",
+              "year": 1940,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "unamuno",
+          "name": "Miguel de Unamuno",
+          "short": "Unamuno",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "San Manuel Bueno, mártir",
+              "year": 1931,
+              "aliases": []
+            },
+            {
+              "title": "Niebla",
+              "year": 1914,
+              "aliases": []
+            },
+            {
+              "title": "La tía Tula",
+              "year": 1921,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "machado",
+          "name": "Antonio Machado",
+          "short": "Machado",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Campos de Castilla",
+              "year": 1912,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "cela",
+          "name": "Camilo José Cela",
+          "short": "Cela",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La familia de Pascual Duarte",
+              "year": 1942,
+              "aliases": []
+            },
+            {
+              "title": "La colmena",
+              "year": 1951,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "delibes",
+          "name": "Miguel Delibes",
+          "short": "Delibes",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El camino",
+              "year": 1950,
+              "aliases": []
+            },
+            {
+              "title": "Los santos inocentes",
+              "year": 1981,
+              "aliases": []
+            },
+            {
+              "title": "Cinco horas con Mario",
+              "year": 1966,
+              "aliases": []
+            },
+            {
+              "title": "La mortaja",
+              "year": 1970,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "valle",
+          "name": "Ramón del Valle-Inclán",
+          "short": "Valle-Inclán",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Luces de bohemia",
+              "year": 1924,
+              "aliases": []
+            },
+            {
+              "title": "Tirano Banderas",
+              "year": 1926,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "baroja",
+          "name": "Pío Baroja",
+          "short": "Baroja",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El árbol de la ciencia",
+              "year": 1911,
+              "aliases": []
+            },
+            {
+              "title": "Zalacaín el aventurero",
+              "year": 1909,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "laforet",
+          "name": "Carmen Laforet",
+          "short": "Laforet",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Nada",
+              "year": 1945,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "martin_gaite",
+          "name": "Carmen Martín Gaite",
+          "short": "Martín Gaite",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [
+            "Martín Gaite"
+          ],
+          "works": [
+            {
+              "title": "Entre visillos",
+              "year": 1958,
+              "aliases": []
+            },
+            {
+              "title": "El cuarto de atrás",
+              "year": 1978,
+              "aliases": []
+            },
+            {
+              "title": "Lo raro es vivir",
+              "year": 1996,
+              "aliases": []
+            },
+            {
+              "title": "La reina de las nieves",
+              "year": 1994,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "matute",
+          "name": "Ana María Matute",
+          "short": "Matute",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Primera memoria",
+              "year": 1960,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "marse",
+          "name": "Juan Marsé",
+          "short": "Marsé",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Últimas tardes con Teresa",
+              "year": 1966,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "marias",
+          "name": "Javier Marías",
+          "short": "Marías",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Corazón tan blanco",
+              "year": 1992,
+              "aliases": []
+            },
+            {
+              "title": "Mañana en la batalla piensa en mí",
+              "year": 1994,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

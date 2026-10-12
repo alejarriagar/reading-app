@@ -1,0 +1,712 @@
+{
+  "regions": {
+    "ru_xix": {
+      "name": "🇷🇺 Rusia · Siglo XIX",
+      "type": "País + periodo",
+      "frontiers": [
+        "ru_xx",
+        "existentialism",
+        "fr_xix",
+        "es_xix"
+      ]
+    },
+    "ru_xx": {
+      "name": "🇷🇺 Rusia · Siglo XX",
+      "type": "País + periodo",
+      "frontiers": [
+        "modernism",
+        "jp_xx"
+      ]
+    },
+    "es_xvi": {
+      "name": "🇪🇸 España · Siglo XVI",
+      "type": "País + periodo",
+      "frontiers": [
+        "es_xix",
+        "uk_renaissance"
+      ]
+    },
+    "es_xix": {
+      "name": "🇪🇸 España · Siglo XIX",
+      "type": "País + periodo",
+      "frontiers": [
+        "fr_xix",
+        "ru_xix",
+        "es_xx"
+      ]
+    },
+    "es_xx": {
+      "name": "🇪🇸 España · Siglo XX",
+      "type": "País + periodo",
+      "frontiers": [
+        "modernism",
+        "existentialism"
+      ]
+    },
+    "fr_xix": {
+      "name": "🇫🇷 Francia · Siglo XIX",
+      "type": "País + periodo",
+      "frontiers": [
+        "ru_xix",
+        "es_xix",
+        "fr_xx"
+      ]
+    },
+    "fr_xx": {
+      "name": "🇫🇷 Francia · Siglo XX",
+      "type": "País + periodo",
+      "frontiers": [
+        "existentialism",
+        "modernism"
+      ]
+    },
+    "uk_xix": {
+      "name": "🇬🇧 Reino Unido · Siglo XIX",
+      "type": "País + periodo",
+      "frontiers": [
+        "uk_xx",
+        "realism"
+      ]
+    },
+    "uk_xx": {
+      "name": "🇬🇧 Reino Unido · Siglo XX",
+      "type": "País + periodo",
+      "frontiers": [
+        "modernism",
+        "existentialism"
+      ]
+    },
+    "uk_renaissance": {
+      "name": "🇬🇧 Inglaterra · Renacimiento",
+      "type": "País + periodo",
+      "frontiers": [
+        "uk_xix",
+        "es_xvi"
+      ]
+    },
+    "jp_xx": {
+      "name": "🇯🇵 Japón · Siglo XX",
+      "type": "País + periodo",
+      "frontiers": [
+        "modernism",
+        "ru_xx"
+      ]
+    },
+    "period_xix": {
+      "name": "⏳ Literatura del siglo XIX",
+      "type": "Periodo",
+      "frontiers": [
+        "modernism",
+        "existentialism"
+      ]
+    },
+    "realism": {
+      "name": "📚 Realismo",
+      "type": "Movimiento",
+      "frontiers": [
+        "modernism",
+        "existentialism"
+      ]
+    },
+    "existentialism": {
+      "name": "🧠 Existencialismo",
+      "type": "Movimiento",
+      "frontiers": [
+        "modernism",
+        "fr_xx"
+      ]
+    },
+    "modernism": {
+      "name": "📚 Modernismo y modernidad",
+      "type": "Movimiento",
+      "frontiers": [
+        "jp_xx",
+        "uk_xx"
+      ]
+    },
+    "psychological": {
+      "name": "🧠 Novela psicológica",
+      "type": "Tema",
+      "frontiers": [
+        "existentialism",
+        "realism"
+      ]
+    }
+  },
+  "authors": {
+    "dostoevsky": {
+      "name": "Fiódor Dostoyevski",
+      "country": "Rusia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo",
+        "novela psicológica"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism",
+        "psychological",
+        "existentialism"
+      ],
+      "related": [
+        "camus",
+        "sartre"
+      ]
+    },
+    "tolstoy": {
+      "name": "León Tolstói",
+      "country": "Rusia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "dostoevsky",
+        "chekhov"
+      ]
+    },
+    "chekhov": {
+      "name": "Antón Chéjov",
+      "country": "Rusia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "tolstoy",
+        "turgenev"
+      ]
+    },
+    "gogol": {
+      "name": "Nikolái Gógol",
+      "country": "Rusia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "dostoevsky",
+        "turgenev"
+      ]
+    },
+    "turgenev": {
+      "name": "Iván Turguénev",
+      "country": "Rusia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "RECOMMENDED",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "dostoevsky",
+        "chekhov"
+      ]
+    },
+    "goncharov": {
+      "name": "Iván Goncharov",
+      "country": "Rusia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "RECOMMENDED",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "turgenev"
+      ]
+    },
+    "bulgakov": {
+      "name": "Mijaíl Bulgákov",
+      "country": "Rusia",
+      "period": "Siglo XX",
+      "movements": [
+        "Sátira",
+        "modernidad"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "ru_xx",
+        "modernism"
+      ],
+      "related": []
+    },
+    "cervantes": {
+      "name": "Miguel de Cervantes",
+      "country": "España",
+      "period": "Siglo XVI–XVII",
+      "movements": [
+        "Siglo de Oro"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "es_xvi"
+      ],
+      "related": [
+        "shakespeare"
+      ]
+    },
+    "galdos": {
+      "name": "Benito Pérez Galdós",
+      "country": "España",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "es_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "flaubert",
+        "balzac"
+      ]
+    },
+    "pardo_bazan": {
+      "name": "Emilia Pardo Bazán",
+      "country": "España",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo",
+        "Naturalismo"
+      ],
+      "tier": "RECOMMENDED",
+      "regions": [
+        "es_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "galdos",
+        "flaubert"
+      ]
+    },
+    "lorca": {
+      "name": "Federico García Lorca",
+      "country": "España",
+      "period": "Siglo XX",
+      "movements": [
+        "Vanguardias"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "es_xx",
+        "modernism"
+      ],
+      "related": []
+    },
+    "balzac": {
+      "name": "Honoré de Balzac",
+      "country": "Francia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "fr_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "flaubert",
+        "galdos"
+      ]
+    },
+    "flaubert": {
+      "name": "Gustave Flaubert",
+      "country": "Francia",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "fr_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "balzac",
+        "galdos"
+      ]
+    },
+    "camus": {
+      "name": "Albert Camus",
+      "country": "Francia",
+      "period": "Siglo XX",
+      "movements": [
+        "Existencialismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "fr_xx",
+        "existentialism"
+      ],
+      "related": [
+        "dostoevsky",
+        "sartre"
+      ]
+    },
+    "sartre": {
+      "name": "Jean-Paul Sartre",
+      "country": "Francia",
+      "period": "Siglo XX",
+      "movements": [
+        "Existencialismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "fr_xx",
+        "existentialism"
+      ],
+      "related": [
+        "dostoevsky",
+        "camus"
+      ]
+    },
+    "austen": {
+      "name": "Jane Austen",
+      "country": "Reino Unido",
+      "period": "Siglo XVIII–XIX",
+      "movements": [
+        "Novela de costumbres"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "uk_xix"
+      ],
+      "related": [
+        "dickens"
+      ]
+    },
+    "dickens": {
+      "name": "Charles Dickens",
+      "country": "Reino Unido",
+      "period": "Siglo XIX",
+      "movements": [
+        "Realismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "uk_xix",
+        "period_xix",
+        "realism"
+      ],
+      "related": [
+        "austen"
+      ]
+    },
+    "woolf": {
+      "name": "Virginia Woolf",
+      "country": "Reino Unido",
+      "period": "Siglo XX",
+      "movements": [
+        "Modernismo"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "uk_xx",
+        "modernism"
+      ],
+      "related": []
+    },
+    "orwell": {
+      "name": "George Orwell",
+      "country": "Reino Unido",
+      "period": "Siglo XX",
+      "movements": [
+        "Distopía"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "uk_xx"
+      ],
+      "related": []
+    },
+    "shakespeare": {
+      "name": "William Shakespeare",
+      "country": "Inglaterra",
+      "period": "Renacimiento",
+      "movements": [
+        "Teatro isabelino"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "uk_renaissance"
+      ],
+      "related": [
+        "cervantes"
+      ]
+    },
+    "murakami": {
+      "name": "Haruki Murakami",
+      "country": "Japón",
+      "period": "Siglo XX–XXI",
+      "movements": [
+        "Literatura contemporánea"
+      ],
+      "tier": "ESSENTIAL",
+      "regions": [
+        "jp_xx"
+      ],
+      "related": [
+        "akutagawa"
+      ]
+    },
+    "akutagawa": {
+      "name": "Ryūnosuke Akutagawa",
+      "country": "Japón",
+      "period": "Siglo XX",
+      "movements": [
+        "Modernidad"
+      ],
+      "tier": "RECOMMENDED",
+      "regions": [
+        "jp_xx",
+        "modernism"
+      ],
+      "related": [
+        "murakami"
+      ]
+    }
+  },
+  "books": [
+    {
+      "id": "crime_punishment",
+      "title": "Crimen y castigo",
+      "author": "dostoevsky",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism",
+        "psychological",
+        "existentialism"
+      ]
+    },
+    {
+      "id": "war_and_peace",
+      "title": "Guerra y paz",
+      "author": "tolstoy",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "cherry_orchard",
+      "title": "El jardín de los cerezos",
+      "author": "chekhov",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "dead_souls",
+      "title": "Almas muertas",
+      "author": "gogol",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "fathers_and_sons",
+      "title": "Padres e hijos",
+      "author": "turgenev",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "oblomov",
+      "title": "Oblómov",
+      "author": "goncharov",
+      "regions": [
+        "ru_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "master_margarita",
+      "title": "El maestro y Margarita",
+      "author": "bulgakov",
+      "regions": [
+        "ru_xx",
+        "modernism"
+      ]
+    },
+    {
+      "id": "don_quixote",
+      "title": "Don Quijote de la Mancha",
+      "author": "cervantes",
+      "regions": [
+        "es_xvi"
+      ]
+    },
+    {
+      "id": "fortunata_jacinta",
+      "title": "Fortunata y Jacinta",
+      "author": "galdos",
+      "regions": [
+        "es_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "pazos_ulloa",
+      "title": "Los pazos de Ulloa",
+      "author": "pardo_bazan",
+      "regions": [
+        "es_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "bernarda_alba",
+      "title": "La casa de Bernarda Alba",
+      "author": "lorca",
+      "regions": [
+        "es_xx",
+        "modernism"
+      ]
+    },
+    {
+      "id": "madame_bovary",
+      "title": "Madame Bovary",
+      "author": "flaubert",
+      "regions": [
+        "fr_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "pere_goriot",
+      "title": "Papá Goriot",
+      "author": "balzac",
+      "regions": [
+        "fr_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "the_stranger",
+      "title": "El extranjero",
+      "author": "camus",
+      "regions": [
+        "fr_xx",
+        "existentialism"
+      ]
+    },
+    {
+      "id": "nausea",
+      "title": "La náusea",
+      "author": "sartre",
+      "regions": [
+        "fr_xx",
+        "existentialism"
+      ]
+    },
+    {
+      "id": "pride_prejudice",
+      "title": "Orgullo y prejuicio",
+      "author": "austen",
+      "regions": [
+        "uk_xix"
+      ]
+    },
+    {
+      "id": "david_copperfield",
+      "title": "David Copperfield",
+      "author": "dickens",
+      "regions": [
+        "uk_xix",
+        "period_xix",
+        "realism"
+      ]
+    },
+    {
+      "id": "mrs_dalloway",
+      "title": "La señora Dalloway",
+      "author": "woolf",
+      "regions": [
+        "uk_xx",
+        "modernism"
+      ]
+    },
+    {
+      "id": "1984",
+      "title": "1984",
+      "author": "orwell",
+      "regions": [
+        "uk_xx"
+      ]
+    },
+    {
+      "id": "hamlet",
+      "title": "Hamlet",
+      "author": "shakespeare",
+      "regions": [
+        "uk_renaissance"
+      ]
+    },
+    {
+      "id": "norwegian_wood",
+      "title": "Tokio blues (Norwegian Wood)",
+      "author": "murakami",
+      "regions": [
+        "jp_xx"
+      ]
+    },
+    {
+      "id": "rashomon",
+      "title": "Rashōmon",
+      "author": "akutagawa",
+      "regions": [
+        "jp_xx",
+        "modernism"
+      ]
+    }
+  ]
+}
