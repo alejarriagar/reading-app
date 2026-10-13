@@ -8,6 +8,7 @@ export const PAGE_SLUGS = {
   library: 'biblioteca',
   stats: 'adn',
   shelves: 'estanterias',
+  catalog: 'catalogo',
 }
 const SLUG_PAGES = Object.fromEntries(Object.entries(PAGE_SLUGS).map(([page, slug]) => [slug, page]))
 

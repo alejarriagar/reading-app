@@ -12,6 +12,8 @@ import AuthorDrawer from './components/AuthorDrawer'
 import BookModal from './components/BookModal'
 import CommandPalette from './components/CommandPalette'
 import ProfileMenu from './components/ProfileMenu'
+import CatalogEditor from './components/CatalogEditor'
+import CatalogPage from './pages/CatalogPage'
 import { CompassModal, DiscoveryModal } from './components/DiscoveryModal'
 import { detectDiscovery } from './lib/discovery'
 import { useHashRoute } from './lib/router'
@@ -25,9 +27,10 @@ const NAV = [
   { id: 'library', label: 'Biblioteca', icon: Library },
   { id: 'shelves', label: 'Estanterías', icon: BookCopy },
   { id: 'stats', label: 'ADN lector', icon: Fingerprint },
+  { id: 'catalog', label: 'Catálogo', icon: Search },
 ]
 
-const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage, shelves: ShelvesPage, stats: StatsPage }
+const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage, shelves: ShelvesPage, stats: StatsPage, catalog: CatalogPage }
 
 const isTyping = target =>
   target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
@@ -40,6 +43,7 @@ export default function App() {
   const [discovery, setDiscovery] = useState(null)
   const [compassAnchor, setCompassAnchor] = useState(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [catalogEditor, setCatalogEditor] = useState(null)
   const dataRef = useRef(null)
   const depth = useRef(0)
 
@@ -193,6 +197,8 @@ export default function App() {
     setSub,
     openRegion,
     closeRegion,
+    correctAuthor: id => setCatalogEditor({ kind: 'author', id }),
+    correctBook: id => setCatalogEditor({ kind: 'book', id }),
   }
   const { summary } = data
 
@@ -260,11 +266,12 @@ export default function App() {
         </div>
       </main>
 
-      {route.author && <AuthorDrawer authorId={route.author} {...ctx} onClose={closeAuthor} />}
-      {book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} shelf={data.shelf?.byBook?.[book.id]} />}
+      {!catalogEditor && route.author && <AuthorDrawer authorId={route.author} {...ctx} onClose={closeAuthor} />}
+      {!catalogEditor && book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} shelf={data.shelf?.byBook?.[book.id]} correctBook={() => setCatalogEditor({ kind: 'book', id: book.id })} />}
       {discovery && <DiscoveryModal discovery={discovery} data={data} onClose={closeDiscovery} onAuthor={exploreAuthor} onRegion={exploreRegion} onUndo={undo} />}
       {compassAnchor && <CompassModal anchor={compassAnchor} data={data} onClose={closeCompass} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
       <CommandPalette open={paletteOpen} data={data} onClose={closePalette} onSelect={handleCommand} />
+      {catalogEditor && <CatalogEditor key={`${catalogEditor.kind}-${catalogEditor.id}`} target={catalogEditor} run={run} onClose={() => setCatalogEditor(null)} />}
       {toast && <Toast {...toast} />}
     </div>
   )

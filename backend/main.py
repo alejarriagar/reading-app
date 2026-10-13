@@ -12,6 +12,7 @@ from backend import accounts, custom_paths, library, store
 from backend.atlas import DEFAULT_PROFILE, Atlas
 
 from backend import wishlist
+from backend import catalogue
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "frontend" / "dist"
@@ -42,8 +43,7 @@ def activate(user):
 
 def open_atlas(user):
     activate(user)
-    atlas = Atlas()
-    atlas.user_id = user["id"]
+    atlas = Atlas(user_id=user["id"])
     return atlas
 
 
@@ -540,6 +540,49 @@ def acquire_wish(wish_id: str, body: WishAcquireIn, user: dict = Depends(current
         body.model_dump(exclude={"allow_duplicate"}),
         user,
         body.allow_duplicate,
+    ))
+
+
+class CatalogCorrectionIn(BaseModel):
+    fields: dict
+    reason: str = Field(min_length=1, max_length=500)
+    source_url: str = Field(default="", max_length=1500)
+    expected_version: str | None = None
+
+
+class CatalogResetIn(BaseModel):
+    expected_version: str | None = None
+
+
+@app.get("/api/catalog/review")
+def catalog_review(user: dict = Depends(current_user)):
+    with LOCK:
+        return catalogue.review(open_atlas(user))
+
+
+@app.get("/api/catalog/{kind}/{resource_id}")
+def catalog_detail(kind: str, resource_id: str, user: dict = Depends(current_user)):
+    with LOCK:
+        try:
+            return catalogue.detail(open_atlas(user), user, kind, resource_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Registro no encontrado.") from exc
+
+
+@app.put("/api/catalog/{kind}/{resource_id}")
+def catalog_correct(kind: str, resource_id: str, body: CatalogCorrectionIn,
+                    user: dict = Depends(current_user)):
+    return execute(user, lambda atlas: catalogue.save(
+        atlas, user, kind, resource_id,
+        body.fields, body.reason, body.source_url, body.expected_version,
+    ))
+
+
+@app.post("/api/catalog/{kind}/{resource_id}/reset")
+def catalog_reset(kind: str, resource_id: str, body: CatalogResetIn,
+                  user: dict = Depends(current_user)):
+    return execute(user, lambda atlas: catalogue.reset(
+        atlas, user, kind, resource_id, body.expected_version,
     ))
 
 

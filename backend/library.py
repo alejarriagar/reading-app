@@ -327,7 +327,13 @@ def match_books(copies, atlas):
     by_title = defaultdict(list)
     for book in atlas.books:
         author_name = atlas.authors.get(book["author"], {}).get("name", "")
-        by_title[_norm(book["title"])].append((book["id"], _norm(author_name)))
+        names = atlas.authors.get(book["author"], {}).get("_catalog_names", [author_name])
+        titles = book.get("_catalog_titles", [book["title"]])
+        for title in titles:
+            for name in names:
+                candidate = (book["id"], _norm(name))
+                if candidate not in by_title[_norm(title)]:
+                    by_title[_norm(title)].append(candidate)
 
     result = {}
     for item in copies:
@@ -344,7 +350,7 @@ def match_books(copies, atlas):
         loose = next((bid for bid, a in options if surnames and any(s in a.split() for s in surnames)), None)
         if loose:
             result[item["id"]] = loose
-        elif not author and len(options) == 1:
+        elif not author and len({bid for bid, _ in options}) == 1:
             result[item["id"]] = options[0][0]
     return result
 

@@ -47,7 +47,7 @@ function AuthorLinks({ ids, data, openAuthor }) {
 
 const formatYear = y => (y < 0 ? `${-y} a. C.` : String(y))
 
-export default function AuthorDrawer({ authorId, data, onClose, openAuthor, editBook }) {
+export default function AuthorDrawer({ authorId, data, onClose, openAuthor, editBook, correctAuthor }) {
   const author = data.authors[authorId]
   if (!author) return null
 
@@ -66,7 +66,7 @@ export default function AuthorDrawer({ authorId, data, onClose, openAuthor, edit
   return (
     <Drawer open title={author.name} subtitle={[author.country, author.period].filter(Boolean).join(' · ')} onClose={onClose}>
       <div className="flex items-center gap-4">
-        <Portrait src={author.image} name={author.name} />
+        <Portrait key={`${author.id}-${author.image || ""}`} src={author.image} name={author.name} />
         <div className="min-w-0">
           {lifespan && <div className="text-sm tabular-nums text-slate-300">{lifespan}</div>}
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -75,6 +75,12 @@ export default function AuthorDrawer({ authorId, data, onClose, openAuthor, edit
           </div>
         </div>
       </div>
+
+      {correctAuthor && (
+        <button type="button" onClick={() => correctAuthor(author.id)} className="mt-4 text-xs text-sky-300 hover:text-sky-100">
+          Revisar o corregir datos del catálogo
+        </button>
+      )}
 
       {author.state === 'LOCKED' && (
         <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/[0.06] p-4 text-sm leading-relaxed text-slate-300">
@@ -103,6 +109,13 @@ export default function AuthorDrawer({ authorId, data, onClose, openAuthor, edit
           {books.length === 0 && <p className="text-sm text-slate-500">No hay obras de este autor en el catálogo.</p>}
         </div>
       </Section>
+
+      {(influencedBy.length > 0 || influenced.length > 0) && (
+        <p className="mt-6 text-[11px] leading-relaxed text-slate-500">
+          Las influencias son declaraciones importadas de Wikidata (P737).
+          No se han verificado automáticamente sus referencias.
+        </p>
+      )}
 
       {influencedBy.length > 0 && (
         <Section title="Influido por">
@@ -140,7 +153,11 @@ export default function AuthorDrawer({ authorId, data, onClose, openAuthor, edit
       )}
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4 text-[11px] text-slate-500">
-        <span>Biografía e influencias: Wikidata · Portadas: Open Library</span>
+        <span>
+          {author.catalogInfo?.origin || "Catálogo"}
+          {author.catalogInfo?.corrected && " · corrección manual"}
+          {author.catalogInfo?.fetchedAt && ` · descarga ${author.catalogInfo.fetchedAt.slice(0, 10)}`}
+        </span>
         {author.qid && (
           <a href={`https://www.wikidata.org/wiki/${author.qid}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-sky-300">
             Ver en Wikidata<ExternalLink size={11} />

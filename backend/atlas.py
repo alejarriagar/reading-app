@@ -17,6 +17,7 @@ from backend import custom_paths
 from backend import genres
 from backend import library
 from backend import readings
+from backend import catalogue
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_FILE = ROOT / "assets" / "catalog.json"
@@ -61,7 +62,8 @@ def best_state(states):
 
 
 class Atlas:
-    def __init__(self):
+    def __init__(self, user_id=None):
+        self.user_id = user_id
         if not CATALOG_FILE.exists():
             raise RuntimeError("Falta assets/catalog.json.")
         self.catalog = read_json(CATALOG_FILE)
@@ -118,6 +120,7 @@ class Atlas:
             merged["state"] = profile["book_statuses"].get(book["id"], "LOCKED")
             books.append(merged)
 
+        catalogue.apply(self, authors, books, norm)
         self.regions = regions
         self.authors = authors
         self.books = books
@@ -131,7 +134,9 @@ class Atlas:
                 "id": book["id"],
                 "title": book["title"],
                 "title_key": norm(book["title"]),
+                "title_keys": {norm(t) for t in book.get("_catalog_titles", [book["title"]])},
                 "author_key": norm(authors.get(book["author"], {}).get("name", "")),
+                "author_keys": {norm(n) for n in authors.get(book["author"], {}).get("_catalog_names", [])},
                 "state": book["state"],
             }
             for book in books
@@ -150,7 +155,7 @@ class Atlas:
         return self._all_paths
 
     def cover_for(self, title, author_name):
-        return self.covers.get(f"{norm(title)}|{norm(author_name)}") or None
+        return self._cover_lookup.get(f"{norm(title)}|{norm(author_name)}") or None
 
     def region_state(self, region_id):
         if region_id in self.profile["mastered_regions"]:
@@ -218,12 +223,12 @@ class Atlas:
         result = []
         for author in path.get("authors", []):
             keys = {norm(n) for n in [author["name"], *author.get("aliases", [])]}
-            own = [row for row in self._library if row["author_key"] in keys]
+            own = [row for row in self._library if row["author_keys"].intersection(keys)]
             matched = set()
             works = []
             for work in author.get("works", []):
                 titles = {norm(t) for t in [work["title"], *work.get("aliases", [])]}
-                matches = [row for row in own if row["title_key"] in titles]
+                matches = [row for row in own if row["title_keys"].intersection(titles)]
                 matched.update(row["id"] for row in matches)
                 best = max(matches, key=lambda row: RANK.get(row["state"], 0), default=None)
                 works.append({
@@ -265,6 +270,7 @@ class Atlas:
                 "notes": b.get("notes") or "",
                 "published": b.get("published"),
                 "stateSince": self.state_since.get(b["id"]),
+                "catalogInfo": catalogue.info(self, "book", b["id"]),
                 **readings.fields(reading_index.get(b["id"], [])),
                 **genre_index.get(b["id"], {"genre": None, "genreSource": None}),
                 "cover": self.cover_for(b["title"], self.authors.get(b["author"], {}).get("name", "")),
@@ -288,6 +294,7 @@ class Atlas:
                 "related": [r for r in a.get("related", []) if r in self.authors],
                 "state": self.author_state(author_id),
                 "mastered": author_id in mastered_authors,
+                "catalogInfo": catalogue.info(self, "author", author_id),
                 "qid": a.get("qid"),
                 "birth": a.get("birth"),
                 "death": a.get("death"),
@@ -383,12 +390,12 @@ class Atlas:
             raise ValueError(f"Territorios desconocidos: {unknown}")
 
         title_key, author_key = norm(title), norm(author_name)
-        if any(r["title_key"] == title_key and r["author_key"] == author_key for r in self._library):
+        if any(title_key in r["title_keys"] and author_key in r["author_keys"] for r in self._library):
             raise ValueError("Esa obra ya está en tu biblioteca.")
 
         movements = [m.strip() for m in (movements or []) if m and m.strip()]
         author_id = next(
-            (aid for aid, a in self.authors.items() if norm(a["name"]) == author_key),
+            (aid for aid, a in self.authors.items() if author_key in {norm(n) for n in a.get("_catalog_names", [a["name"]])}),
             None,
         )
 
@@ -473,7 +480,7 @@ class Atlas:
                 return
             keys = {norm(n) for n in [author["name"], *author.get("aliases", [])]}
             existing = next(
-                (a["name"] for a in self.authors.values() if norm(a["name"]) in keys),
+                (a["name"] for a in self.authors.values() if {norm(n) for n in a.get("_catalog_names", [a["name"]])}.intersection(keys)),
                 author["name"],
             )
             region_ids = [r for r in path.get("region_ids", []) if r in self.regions]

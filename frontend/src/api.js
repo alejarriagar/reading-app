@@ -62,4 +62,8 @@ export const api = {
   deleteWish: wishId => request(`/wishlist/${id(wishId)}`, { method: 'DELETE' }),
   reserveWish: (wishId, reserved) => request(`/wishlist/${id(wishId)}/reserve`, json('POST', { reserved })),
   acquireWish: (wishId, body) => request(`/wishlist/${id(wishId)}/acquire`, json('POST', body)),
+  catalogDetail: (kind, resourceId) => request(`/catalog/${kind}/${id(resourceId)}`),
+  updateCatalog: (kind, resourceId, body) => request(`/catalog/${kind}/${id(resourceId)}`, json('PUT', body)),
+  resetCatalog: (kind, resourceId, body) => request(`/catalog/${kind}/${id(resourceId)}/reset`, json('POST', body)),
+  catalogReview: () => request('/catalog/review'),
 }

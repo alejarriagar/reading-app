@@ -37,7 +37,7 @@ function DateInput({ value, onChange, disabled }) {
   )
 }
 
-export default function BookModal({ book, run, onClose, shelf }) {
+export default function BookModal({ book, run, onClose, shelf, correctBook }) {
   const [state, setState] = useState(book.state)
   const [rating, setRating] = useState(book.rating ?? '')
   const [notes, setNotes] = useState(book.notes || '')
@@ -135,6 +135,12 @@ export default function BookModal({ book, run, onClose, shelf }) {
           ))}
         </div>
       </div>
+
+      {correctBook && (
+        <button type="button" onClick={correctBook} className="mb-5 text-xs text-sky-300 hover:text-sky-100">
+          Revisar título, portada y datos del catálogo
+        </button>
+      )}
 
       <Field as="div" label="Estado">
         <Segmented value={state} onChange={changeState} options={STATE_ORDER.map(s => ({ value: s, label: STATE_META[s].label }))} />

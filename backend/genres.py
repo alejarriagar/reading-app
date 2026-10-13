@@ -41,23 +41,25 @@ def classify_all(books, metadata):
         user = (metadata.get(book["id"]) or {}).get("genre")
         if user in GENRES:
             direct[book["id"]] = (user, "user")
+        elif "catalogGenre" in book:
+            direct[book["id"]] = (book["catalogGenre"], "corrected")
         elif book.get("wdGenre") in GENRES:
             direct[book["id"]] = (book["wdGenre"], "catalog")
-        elif seeds.get(_norm(book["title"])) in GENRES:
-            direct[book["id"]] = (seeds[_norm(book["title"])], "catalog")
+        elif seeds.get(_norm(book.get("catalogSeedTitle", book["title"]))) in GENRES:
+            direct[book["id"]] = (seeds[_norm(book.get("catalogSeedTitle", book["title"]))], "catalog")
         elif THOUGHT_REGIONS & set(book.get("regions", [])):
             direct[book["id"]] = ("ENSAYO", "inferred")
 
     by_author = defaultdict(Counter)
     for book in books:
         found = direct.get(book["id"])
-        if found and found[1] != "inferred":
+        if found and found[0] is not None and found[1] != "inferred":
             by_author[book["author"]][found[0]] += 1
 
     result = {}
     for book in books:
         genre, source = direct.get(book["id"], (None, None))
-        if genre is None:
+        if genre is None and source != "corrected":
             counts = by_author.get(book["author"])
             if counts:
                 top, n = counts.most_common(1)[0]
