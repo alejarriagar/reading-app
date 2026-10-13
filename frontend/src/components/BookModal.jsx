@@ -3,6 +3,7 @@ import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import Cover from './Cover'
 import { Button, Field, Modal, Segmented, STATE_META, STATE_ORDER, cx, inputClass } from './ui'
+import { GENRE_META, GENRES } from '../lib/genres'
 
 const DATE_RE = /^\d{4}(-\d{2}){0,2}$/
 
@@ -40,6 +41,7 @@ export default function BookModal({ book, run, onClose }) {
   const [state, setState] = useState(book.state)
   const [rating, setRating] = useState(book.rating ?? '')
   const [notes, setNotes] = useState(book.notes || '')
+  const [genre, setGenre] = useState(book.genreSource === 'user' ? book.genre : '')
   const [readings, setReadings] = useState(() =>
     (book.readings || []).map(r => ({ ...r, started: r.started || '', finished: r.finished || '', note: r.note || '' })))
   const [error, setError] = useState('')
@@ -86,6 +88,7 @@ export default function BookModal({ book, run, onClose }) {
       rating: parsedRating,
       reread: false,
       notes,
+      genre,
       readings: readings.map(r => ({
         id: String(r.id).startsWith('new-') ? null : r.id,
         status: r.status,
@@ -132,9 +135,21 @@ export default function BookModal({ book, run, onClose }) {
         <Segmented value={state} onChange={changeState} options={STATE_ORDER.map(s => ({ value: s, label: STATE_META[s].label }))} />
       </Field>
 
-      <Field label="Nota (0–10)" className="mt-5 max-w-[160px]">
-        <input className={inputClass} inputMode="decimal" value={rating} onChange={e => setRating(e.target.value)} placeholder="8.5" />
-      </Field>
+      <div className="mt-5 grid gap-4 sm:grid-cols-[160px_1fr]">
+        <Field label="Nota (0–10)">
+          <input className={inputClass} inputMode="decimal" value={rating} onChange={e => setRating(e.target.value)} placeholder="8.5" />
+        </Field>
+        <Field label="Tipo de obra">
+          <select className={inputClass} value={genre} onChange={e => setGenre(e.target.value)}>
+            <option value="">
+              {book.genreSource && book.genreSource !== 'user' && book.genre
+                ? `Automático (${GENRE_META[book.genre].label})`
+                : book.genreSource === 'user' ? 'Automático' : 'Automático (sin clasificar)'}
+            </option>
+            {GENRES.map(key => <option key={key} value={key}>{GENRE_META[key].label}</option>)}
+          </select>
+        </Field>
+      </div>
 
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">

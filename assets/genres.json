@@ -1,0 +1,49 @@
+{
+  "_nota": "Clasificación de partida por título. Lo que elijas en la ficha de cada obra tiene prioridad.",
+  "NOVELA": [
+    "Crimen y castigo", "Guerra y paz", "Almas muertas", "Padres e hijos", "Oblómov", "El maestro y Margarita",
+    "Don Quijote de la Mancha", "Fortunata y Jacinta", "Los pazos de Ulloa", "Madame Bovary", "Papá Goriot",
+    "El extranjero", "La náusea", "Orgullo y prejuicio", "David Copperfield", "La señora Dalloway", "1984",
+    "Tokio blues", "Tokio Blues", "Todo arde", "Todo vuelve", "El problema final", "La vieja sirena", "Lo raro es vivir",
+    "Muerte en el Nilo", "La reina de las nieves", "El niño", "Demian", "A flor de piel", "La vegetariana",
+    "El mejor libro del mundo", "Ordesa", "Los renglones torcidos de Dios", "El proceso", "El castillo",
+    "El mundo de Sofía", "Un mundo feliz", "América", "La península de las casas vacías",
+    "Ese imbécil va a escribir una novela", "La isla de la mujer dormida", "Sputnik, mi amor", "El viejo y el mar",
+    "Cien años de soledad", "El candelabro enterrado", "La buena tierra", "Imposible decir adiós", "Novela de ajedrez",
+    "El túnel", "Los hermanos Karamázov", "La vida instrucciones de uso", "La intriga del funeral inconveniente",
+    "Carta de una desconocida", "Africanus", "Las gratitudes", "Fahrenheit 451", "Las partículas elementales",
+    "La tía Tula", "El camino", "Lazarillo de Tormes", "Kitchen"
+  ],
+  "RELATO": [
+    "Rashōmon", "En el bosque", "Dublineses", "Ficciones", "El Aleph", "Bestiario", "Historias de cronopios y de famas",
+    "El llano en llamas", "Llamadas telefónicas", "Nueve cuentos", "De qué hablamos cuando hablamos de amor", "Catedral",
+    "La dama del perrito", "El capote", "La nariz", "Relatos de Kolimá", "Caballería roja", "Un corazón sencillo",
+    "Bola de sebo", "Novelas ejemplares", "La mortaja"
+  ],
+  "POESIA": [
+    "Romancero gitano", "Poeta en Nueva York", "Campos de Castilla", "Las flores del mal", "El spleen de París",
+    "Una temporada en el infierno", "Ilíada", "Odisea", "Eneida", "Las metamorfosis",
+    "Veinte poemas de amor y una canción desesperada", "Canto general", "Piedra de sol", "Desolación", "Réquiem",
+    "Elegías de Duino", "Ariel", "Soledades", "Fábula de Polifemo y Galatea", "Églogas", "Cántico espiritual",
+    "Noche oscura", "De la naturaleza de las cosas"
+  ],
+  "TEATRO": [
+    "El jardín de los cerezos", "La gaviota", "La casa de Bernarda Alba", "Bodas de sangre", "Luces de bohemia", "Hamlet",
+    "Esperando a Godot", "La vida es sueño", "Fuenteovejuna", "El alcalde de Zalamea", "El burlador de Sevilla",
+    "El perro del hortelano", "A puerta cerrada", "La importancia de llamarse Ernesto", "Madre Coraje y sus hijos",
+    "La ópera de cuatro cuartos", "Edipo rey", "Antígona", "Medea", "La Orestíada", "La Celestina"
+  ],
+  "ENSAYO": [
+    "Ética para Amador", "Nuestra especie", "Cuando los tontos mandan", "Al otro lado de la niebla", "Del conocimiento",
+    "La conciencia contada por un Sapiens a un Neandertal", "Estudios sobre el amor", "Dos tardes con Franz Kafka",
+    "Ética a Nicómaco", "¿Existe la suerte?", "Estadística frente a palabras", "El príncipe", "No sé si me explico",
+    "Cuando la sociedad es el tirano", "El mundo y sus demonios", "Cómo escribir una novela",
+    "El laberinto de la soledad", "El segundo sexo", "El mito de Sísifo", "El existencialismo es un humanismo",
+    "Una habitación propia", "Homenaje a Cataluña", "El elogio de la sombra", "El mundo de ayer",
+    "Momentos estelares de la humanidad", "Temor y temblor", "La enfermedad mortal", "Así habló Zaratustra",
+    "La gaya ciencia", "Del sentimiento trágico de la vida", "Para una moral de la ambigüedad", "Apología de Sócrates",
+    "El banquete", "La república", "Poética", "Política", "Meditaciones", "De la brevedad de la vida",
+    "Cartas a Lucilio", "Archipiélago Gulag", "Habla, memoria", "Las palabras", "Memorias de una joven formal",
+    "Cartas a un joven poeta", "Libro de la vida", "Las moradas"
+  ]
+}

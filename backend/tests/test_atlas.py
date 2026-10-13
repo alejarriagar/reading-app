@@ -216,3 +216,64 @@ def test_caminos_automaticos(env, monkeypatch):
 
     Atlas().set_path_work("auto-r1", "a2", 0, "READ")
     assert Atlas().books_by_id["b2"]["state"] == "READ"
+
+def test_caminos_propios(env):
+    from backend import custom_paths
+
+    path_id = custom_paths.create(Atlas(), {"name": "Mi ruta", "authors": [
+        {"name": "Autor Dos", "tier": "ESSENTIAL", "works": [{"title": "Libro Dos"}]},
+        {"name": "Autora Uno", "works": [{"title": "Libro Uno"}]},
+    ]})
+    mine = next(p for p in Atlas().snapshot()["paths"] if p["id"] == path_id)
+    assert mine["custom"] is True
+    assert [a["name"] for a in mine["authors"]] == ["Autor Dos", "Autora Uno"]
+
+    Atlas().set_path_work(path_id, mine["authors"][0]["id"], 0, "READ")
+    assert Atlas().books_by_id["b2"]["state"] == "READ"
+
+    with pytest.raises(ValueError):
+        custom_paths.create(Atlas(), {"name": "Vacío", "authors": []})
+    with pytest.raises(ValueError):
+        custom_paths.create(Atlas(), {"name": "Doble", "authors": [
+            {"name": "X", "works": [{"title": "A"}]},
+            {"name": "x", "works": [{"title": "B"}]},
+        ]})
+
+    copy_id = custom_paths.duplicate(Atlas(), "p1")
+    copy = next(p for p in Atlas().snapshot()["paths"] if p["id"] == copy_id)
+    assert copy["name"].startswith("Mi versión")
+    assert any(p["id"] == "p1" for p in Atlas().snapshot()["paths"])  # el original sigue
+
+    custom_paths.delete(Atlas(), path_id)
+    assert path_id not in [p["id"] for p in Atlas().snapshot()["paths"]]
+    store.undo_last()
+    assert path_id in [p["id"] for p in Atlas().snapshot()["paths"]]
+
+def test_tipo_de_obra(env):
+    Atlas().update_book("b1", "READ", None, None, False, "", genre="ENSAYO")
+    book = _book(Atlas().snapshot(), "b1")
+    assert (book["genre"], book["genreSource"]) == ("ENSAYO", "user")
+
+    Atlas().update_book("b1", "READ", None, 7.0, False, "")  # sin tipo: se conserva
+    assert _book(Atlas().snapshot(), "b1")["genre"] == "ENSAYO"
+
+    with pytest.raises(ValueError):
+        Atlas().update_book("b1", "READ", None, None, False, "", genre="CHISTE")
+
+    Atlas().update_book("b1", "READ", None, None, False, "", genre="NOVELA")
+    extra = Atlas().add_book("Libro Cuatro", "Autora Uno", "", "", [], [], "DISCOVERED")
+    other = Atlas().add_book("Libro Cinco", "Autora Uno", "", "", [], [], "DISCOVERED")
+    Atlas().update_book(extra, "DISCOVERED", None, None, False, "", genre="NOVELA")
+    inferred = _book(Atlas().snapshot(), other)
+    assert (inferred["genre"], inferred["genreSource"]) == ("NOVELA", "inferred")
+
+    Atlas().update_book("b1", "READ", None, None, False, "", genre="")  # volver a automático
+    assert _book(Atlas().snapshot(), "b1")["genreSource"] != "user"
+
+
+def test_clasificacion_de_partida():
+    from backend.genres import load_seeds, _norm
+    seeds = load_seeds()
+    assert seeds[_norm("Ética para Amador")] == "ENSAYO"
+    assert seeds[_norm("Romancero gitano")] == "POESIA"
+    assert seeds[_norm("Tokio blues (Norwegian Wood)")] == "NOVELA"

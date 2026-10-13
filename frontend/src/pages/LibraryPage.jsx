@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Lock, Plus, RotateCcw, Search } from 'lucide-react'
 import { api } from '../api'
 import Cover from '../components/Cover'
+import { GENRE_META, GENRES } from '../lib/genres'
 import { Button, Card, Field, Modal, PageHeader, Segmented, STATE_META, STATE_ORDER, StateBadge, cx, inputClass } from '../components/ui'
 
 const PAGE_SIZE = 20
@@ -111,6 +112,7 @@ export default function LibraryPage({ data, run, editBook, openAuthor, routeSub,
   const [query, setQuery] = useState('')
   const [stateFilter, setStateFilter] = useState('ALL')
   const [year, setYear] = useState('ALL')
+  const [genre, setGenre] = useState('ALL')
   const [sort, setSort] = useState({ key: 'year', dir: 'desc' })
   const [page, setPage] = useState(0)
   const [addingLocal, setAdding] = useState(false)
@@ -123,9 +125,10 @@ export default function LibraryPage({ data, run, editBook, openAuthor, routeSub,
     const filtered = data.books.filter(b =>
       (stateFilter === 'ALL' || b.state === stateFilter)
       && (year === 'ALL' || String(b.year) === year)
+      && (genre === 'ALL' || (genre === 'NONE' ? !b.genre : b.genre === genre))
       && (!q || normalize(`${b.title} ${b.authorName} ${b.notes}`).includes(q)))
     return sortBooks(filtered, sort)
-  }, [data.books, query, stateFilter, year, sort])
+  }, [data.books, query, stateFilter, year, genre, sort])
 
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
   const safePage = Math.min(page, pages - 1)
@@ -167,6 +170,11 @@ export default function LibraryPage({ data, run, editBook, openAuthor, routeSub,
           <option value="ALL">Todos los años</option>
           {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
         </select>
+        <select value={genre} onChange={e => { setGenre(e.target.value); setPage(0) }} className={cx(inputClass, 'w-44')}>
+          <option value="ALL">Todos los tipos</option>
+          {GENRES.map(key => <option key={key} value={key}>{GENRE_META[key].label}</option>)}
+          <option value="NONE">Sin clasificar</option>
+        </select>
       </div>
 
       <Card className="overflow-hidden">
@@ -196,6 +204,7 @@ export default function LibraryPage({ data, run, editBook, openAuthor, routeSub,
                           {book.state === 'LOCKED' && <Lock size={12} className="text-slate-500" />}{book.title}
                         </div>
                         <button type="button" onClick={e => { e.stopPropagation(); openAuthor(book.author) }} className="mt-0.5 text-xs text-slate-500 hover:text-sky-300">{book.authorName}</button>
+                        {book.genre && <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-600">{GENRE_META[book.genre].short}</span>}
                       </div>
                     </div>
                   </td>

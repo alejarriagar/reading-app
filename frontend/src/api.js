@@ -31,4 +31,8 @@ export const api = {
   history: () => request('/history'),
   dismissRecommendation: bookId => request(`/recommendations/${id(bookId)}/dismiss`, { method: 'POST' }),
   reread: bookId => request(`/books/${id(bookId)}/reread`, { method: 'POST' }),
+  createPath: body => request('/paths/custom', json('POST', body)),
+  updatePath: (pathId, body) => request(`/paths/custom/${id(pathId)}`, json('PUT', body)),
+  deletePath: pathId => request(`/paths/custom/${id(pathId)}`, { method: 'DELETE' }),
+  duplicatePath: pathId => request(`/paths/${id(pathId)}/duplicate`, { method: 'POST' }),
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, Sparkles } from 'lucide-react'
+import { Search, Sparkles, UserRound } from 'lucide-react'
 import { ProgressBar, Segmented, cx, inputClass } from './ui'
 
 const isRead = state => state === 'READ' || state === 'MASTERED'
@@ -17,13 +17,15 @@ export default function PathPicker({ paths, activeId, onSelect }) {
   const q = normalize(query.trim())
   const visible = enriched
     .filter(p => filter === 'all'
-      || (filter === 'curated' && !p.auto)
+      || (filter === 'curated' && !p.auto && !p.custom)
+      || (filter === 'mine' && p.custom)
       || (filter === 'auto' && p.auto)
       || (filter === 'started' && p.read > 0))
     .filter(p => !q || normalize(`${p.name} ${p.authors.map(a => a.name).join(' ')}`).includes(q))
 
   const counts = {
-    curated: enriched.filter(p => !p.auto).length,
+    curated: enriched.filter(p => !p.auto && !p.custom).length,
+    mine: enriched.filter(p => p.custom).length,
     auto: enriched.filter(p => p.auto).length,
     started: enriched.filter(p => p.read > 0).length,
   }
@@ -37,6 +39,7 @@ export default function PathPicker({ paths, activeId, onSelect }) {
           options={[
             { value: 'all', label: `Todos · ${enriched.length}` },
             { value: 'curated', label: `Curados · ${counts.curated}` },
+            { value: 'mine', label: `Míos · ${counts.mine}` },
             { value: 'auto', label: `Del catálogo · ${counts.auto}` },
             { value: 'started', label: `Empezados · ${counts.started}` },
           ]}
@@ -59,7 +62,9 @@ export default function PathPicker({ paths, activeId, onSelect }) {
             >
               <div className="flex items-start justify-between gap-2">
                 <span className={cx('text-sm font-medium leading-snug', active ? 'text-white' : 'text-slate-200')}>{p.name}</span>
-                {!p.auto && <Sparkles size={12} className="mt-1 shrink-0 text-amber-300" aria-label="Camino curado" />}
+                {p.custom
+                  ? <UserRound size={12} className="mt-1 shrink-0 text-violet-300" aria-label="Tu camino" />
+                  : !p.auto && <Sparkles size={12} className="mt-1 shrink-0 text-amber-300" aria-label="Camino curado" />}
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <ProgressBar value={p.rate} />
@@ -68,12 +73,17 @@ export default function PathPicker({ paths, activeId, onSelect }) {
             </button>
           )
         })}
-        {!visible.length && <p className="col-span-full p-4 text-sm text-slate-500">No hay caminos con ese filtro.</p>}
+        {!visible.length && (
+          <p className="col-span-full p-4 text-sm text-slate-500">
+            {filter === 'mine' ? 'Aún no has creado caminos. Usa «Nuevo camino» o «Personalizar» en cualquier camino.' : 'No hay caminos con ese filtro.'}
+          </p>
+        )}
       </div>
 
-      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-        <Sparkles size={10} className="text-amber-300" />
-        Curado: autores y obras elegidos a mano. Del catálogo: generado a partir de los autores de cada territorio.
+      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+        <span className="inline-flex items-center gap-1"><Sparkles size={10} className="text-amber-300" />Curado: elegido a mano</span>
+        <span className="inline-flex items-center gap-1"><UserRound size={10} className="text-violet-300" />Tuyo: creado o personalizado por ti</span>
+        <span>Del catálogo: generado a partir de cada territorio</span>
       </p>
     </div>
   )

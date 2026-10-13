@@ -155,7 +155,12 @@ export function buildStats(data) {
     ? `Tardas de media ${Math.round(avgDays)} días en terminar un libro.`
     : 'Cuando registres fechas de inicio y fin, aquí verás tu ritmo de lectura.')
 
+  const genres = genreStats(readBooks, finished)
+  if (genres.insight) insights.splice(1, 0, genres.insight)
+  if (genres.ratingInsight) insights.push(genres.ratingInsight)
+
   return {
+    genres,
     finished,
     durations,
     readBooks,
@@ -223,4 +228,54 @@ export function yearReview(stats, year) {
     rereads: items.filter(f => f.reading?.reread).length,
     avgDays: average(durations.map(d => d.days)),
   }
+}
+
+const THOUGHT = {
+  philosophy: 'Filosofía',
+  classical_thought: 'Pensamiento clásico',
+  social_sciences: 'Ciencias sociales',
+  science_essay: 'Ciencia',
+}
+
+export function genreStats(readBooks, finished) {
+  const counts = { NOVELA: 0, RELATO: 0, POESIA: 0, TEATRO: 0, ENSAYO: 0, NONE: 0 }
+  for (const book of readBooks) counts[book.genre || 'NONE'] += 1
+  const fiction = counts.NOVELA + counts.RELATO + counts.POESIA + counts.TEATRO
+  const classified = fiction + counts.ENSAYO
+  const essayShare = classified ? counts.ENSAYO / classified : 0
+
+  const years = {}
+  for (const f of finished) {
+    if (!f.year) continue
+    if (!years[f.year]) years[f.year] = { fiction: 0, essay: 0, none: 0 }
+    if (f.book.genre === 'ENSAYO') years[f.year].essay += 1
+    else if (f.book.genre) years[f.year].fiction += 1
+    else years[f.year].none += 1
+  }
+  const byYear = Object.entries(years).sort(([a], [b]) => a.localeCompare(b)).map(([year, v]) => ({ year, ...v }))
+
+  const essays = readBooks.filter(book => book.genre === 'ENSAYO')
+  const groups = {}
+  for (const book of essays) {
+    const key = Object.keys(THOUGHT).find(id => book.regions.includes(id))
+    const label = key ? THOUGHT[key] : 'Otros ensayos'
+    if (!groups[label]) groups[label] = []
+    groups[label].push(book)
+  }
+  const disciplines = Object.entries(groups)
+    .map(([label, books]) => ({ label, books }))
+    .sort((a, b) => b.books.length - a.books.length)
+
+  const ratingOf = list => average(list.filter(b => typeof b.rating === 'number').map(b => b.rating))
+  const fictionAvg = ratingOf(readBooks.filter(b => b.genre && b.genre !== 'ENSAYO'))
+  const essayAvg = ratingOf(essays)
+
+  const insight = classified >= 5
+    ? `El ${Math.round(essayShare * 100)}% de lo que lees es ensayo y no ficción; el resto, literatura.`
+    : null
+  const ratingInsight = fictionAvg != null && essayAvg != null && Math.abs(fictionAvg - essayAvg) >= 0.5
+    ? `Puntúas mejor ${essayAvg > fictionAvg ? 'el ensayo' : 'la literatura'}: ${Math.max(essayAvg, fictionAvg).toFixed(1)} frente a ${Math.min(essayAvg, fictionAvg).toFixed(1)}.`
+    : null
+
+  return { counts, fiction, classified, essayShare, byYear, essays, disciplines, fictionAvg, essayAvg, insight, ratingInsight }
 }

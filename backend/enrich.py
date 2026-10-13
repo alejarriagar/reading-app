@@ -469,6 +469,30 @@ def main():
             })
             added += 1
 
+    work_genres = {
+        "Q8261": "NOVELA", "Q149537": "NOVELA",
+        "Q49084": "RELATO", "Q1279564": "RELATO",
+        "Q5185279": "POESIA", "Q12106333": "POESIA",
+        "Q25379": "TEATRO",
+        "Q35760": "ENSAYO",
+    }
+    work_qids = [b["id"][3:] for b in new_books if b["id"].startswith("wd-Q")]
+    found_genres = {}
+    for chunk in chunks(work_qids, 60):
+        rows = safe_sparql(f"""
+            SELECT ?work ?type WHERE {{
+              VALUES ?work {{ {values(chunk)} }}
+              ?work wdt:P31 ?type .
+              VALUES ?type {{ {values(work_genres)} }}
+            }}
+        """, "tipos de obra")
+        for row in rows:
+            found_genres.setdefault(qid(val(row, "work")), work_genres[qid(val(row, "type"))])
+    for book in new_books:
+        genre = found_genres.get(book["id"][3:])
+        if genre:
+            book["wdGenre"] = genre
+
     output = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": "Wikidata (CC0) y Open Library",

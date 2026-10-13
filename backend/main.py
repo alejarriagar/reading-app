@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import store
+from backend import custom_paths, store
 from backend.atlas import DEFAULT_PROFILE, Atlas
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +54,7 @@ class BookUpdate(BaseModel):
     reread: bool = False
     notes: str = Field(default="", max_length=5000)
     readings: list[ReadingIn] | None = None
+    genre: str | None = None
 
 
 class NewBook(BaseModel):
@@ -89,7 +90,8 @@ def update_book(book_id: str, body: BookUpdate):
         title = atlas.books_by_id.get(book_id, {}).get("title", book_id)
         atlas.label = f"Editar «{title}»"
         atlas.update_book(book_id, body.state, body.year, body.rating, body.reread, body.notes,
-                          None if body.readings is None else [r.model_dump() for r in body.readings])
+                          None if body.readings is None else [r.model_dump() for r in body.readings],
+                          genre=body.genre)
     return execute(action)
 
 
@@ -153,6 +155,48 @@ def dismiss_recommendation(book_id: str):
             dismissed.append(book_id)
             atlas.save()
     return execute(action)
+
+
+class CustomPathIn(BaseModel):
+    name: str
+    description: str = ""
+    region_ids: list[str] = []
+    authors: list[dict] = []
+
+
+def execute_create(fn, label):
+    created = {}
+
+    def action(atlas):
+        atlas.label = label
+        created["id"] = fn(atlas)
+
+    snapshot = execute(action)
+    snapshot["createdId"] = created.get("id")
+    return snapshot
+
+
+@app.post("/api/paths/custom")
+def create_path(body: CustomPathIn):
+    return execute_create(lambda a: custom_paths.create(a, body.model_dump()), f"Crear camino «{body.name}»")
+
+
+@app.put("/api/paths/custom/{path_id}")
+def update_path(path_id: str, body: CustomPathIn):
+    return execute_create(lambda a: custom_paths.update(a, path_id, body.model_dump()), f"Editar camino «{body.name}»")
+
+
+@app.delete("/api/paths/custom/{path_id}")
+def delete_path(path_id: str):
+    def action(atlas):
+        atlas.label = "Eliminar camino"
+        custom_paths.delete(atlas, path_id)
+    return execute(action)
+
+
+@app.post("/api/paths/{path_id}/duplicate")
+def duplicate_path(path_id: str):
+    return execute_create(lambda a: custom_paths.duplicate(a, path_id), "Personalizar camino")
 
 
 @app.post("/api/undo")

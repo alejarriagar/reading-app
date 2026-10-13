@@ -3,6 +3,7 @@ import { BookCheck, Calendar, Fingerprint, Globe, MapPin, RotateCcw, Sparkles, S
 import Cover from '../components/Cover'
 import { Card, PageHeader, Segmented, StatCard, cx } from '../components/ui'
 import { MONTHS, buildStats, yearReview } from '../lib/stats'
+import { GENRE_META, GENRES } from '../lib/genres'
 
 function Title({ children, hint }) {
   return (
@@ -97,7 +98,112 @@ function Initials({ author }) {
   return <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-[10px] font-semibold text-slate-500">{text}</span>
 }
 
-function Profile({ stats, openAuthor }) {
+function Donut({ segments, total }) {
+  const r = 58
+  const c = 2 * Math.PI * r
+  let offset = 0
+  return (
+    <svg width="150" height="150" viewBox="0 0 150 150" className="shrink-0">
+      <circle cx="75" cy="75" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="18" />
+      {segments.filter(s => s.count).map(s => {
+        const length = (s.count / Math.max(1, total)) * c
+        const element = (
+          <circle key={s.key} cx="75" cy="75" r={r} fill="none" stroke={s.color} strokeWidth="18"
+            strokeDasharray={`${length} ${c - length}`} strokeDashoffset={-offset} transform="rotate(-90 75 75)" />
+        )
+        offset += length
+        return element
+      })}
+      <text x="75" y="74" textAnchor="middle" fill="#F8FAFC" fontSize="24" fontWeight="600">{total}</text>
+      <text x="75" y="93" textAnchor="middle" fill="#64748B" fontSize="11">obras</text>
+    </svg>
+  )
+}
+
+function GenreSection({ stats, editBook }) {
+  const g = stats.genres
+  const total = stats.readBooks.length
+  const segments = [...GENRES, 'NONE'].map(key => ({ key, count: g.counts[key], ...GENRE_META[key] }))
+  const maxYear = Math.max(1, ...g.byYear.map(y => y.fiction + y.essay + y.none))
+  return (
+    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <Card className="p-6">
+        <Title hint="Qué tipo de obras lees">Literatura y pensamiento</Title>
+        <div className="flex flex-wrap items-center gap-6">
+          <Donut segments={segments} total={total} />
+          <ul className="min-w-0 flex-1 space-y-1.5">
+            {segments.filter(s => s.count).map(s => (
+              <li key={s.key} className="flex items-center gap-2 text-sm">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
+                <span className="flex-1 text-slate-300">{s.label}</span>
+                <span className="tabular-nums text-slate-400">{s.count}</span>
+                <span className="w-10 text-right text-xs tabular-nums text-slate-500">{Math.round((s.count / Math.max(1, total)) * 100)}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          {[['Literatura', g.fictionAvg], ['Ensayo', g.essayAvg]].map(([label, value]) => (
+            <div key={label} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+              <div className="text-[11px] text-slate-500">Nota media · {label}</div>
+              <div className="mt-1 text-lg font-semibold tabular-nums text-amber-300">{value != null ? `★ ${value.toFixed(1)}` : '—'}</div>
+            </div>
+          ))}
+        </div>
+        {g.counts.NONE > 0 && (
+          <p className="mt-4 text-[11px] text-slate-500">{g.counts.NONE} obras sin clasificar. Puedes indicar el tipo en la ficha de cada obra.</p>
+        )}
+      </Card>
+
+      <Card className="p-6">
+        <Title hint="Literatura frente a ensayo, año a año">Equilibrio por año</Title>
+        <div className="space-y-2.5">
+          {g.byYear.map(y => {
+            const t = y.fiction + y.essay + y.none
+            return (
+              <div key={y.year} className="grid grid-cols-[48px_1fr_56px] items-center gap-3 text-sm">
+                <span className="tabular-nums text-slate-400">{y.year}</span>
+                <div className="flex h-2.5 overflow-hidden rounded-full" style={{ width: `${(t / maxYear) * 100}%` }}>
+                  <div style={{ width: `${(y.fiction / t) * 100}%`, background: GENRE_META.NOVELA.color }} />
+                  <div style={{ width: `${(y.essay / t) * 100}%`, background: GENRE_META.ENSAYO.color }} />
+                  <div style={{ width: `${(y.none / t) * 100}%`, background: GENRE_META.NONE.color }} />
+                </div>
+                <span className="text-right text-xs tabular-nums text-slate-500">{y.fiction} · {y.essay}</span>
+              </div>
+            )
+          })}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-slate-500">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: GENRE_META.NOVELA.color }} />Literatura</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: GENRE_META.ENSAYO.color }} />Ensayo</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: GENRE_META.NONE.color }} />Sin clasificar</span>
+        </div>
+
+        <div className="mt-6 border-t border-white/5 pt-4">
+          <div className="mb-3 text-sm font-semibold text-white">Tu mapa del pensamiento</div>
+          {g.disciplines.length ? (
+            <div className="space-y-3">
+              {g.disciplines.map(d => (
+                <div key={d.label}>
+                  <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">{d.label} · {d.books.length}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {d.books.map(b => (
+                      <button key={b.id} type="button" onClick={() => editBook(b.id)} className="rounded-full border border-amber-400/25 bg-amber-400/5 px-2.5 py-0.5 text-[11px] text-amber-100 transition hover:border-amber-300/50">
+                        {b.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-slate-500">Aún no has leído ensayos clasificados.</p>}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+function Profile({ stats, openAuthor, editBook }) {
   const countryMax = Math.max(1, ...stats.byCountry.map(c => c.count))
   return (
     <>
@@ -124,6 +230,8 @@ function Profile({ stats, openAuthor }) {
           ))}
         </ul>
       </Card>
+
+      <GenreSection stats={stats} editBook={editBook} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="p-6">
@@ -325,7 +433,7 @@ export default function StatsPage({ data, openAuthor, editBook }) {
           <p className="text-sm text-slate-400">Cuando termines tus primeras lecturas, aquí aparecerá tu ADN lector.</p>
         </Card>
       ) : mode === 'profile'
-        ? <Profile stats={stats} openAuthor={openAuthor} />
+        ? <Profile stats={stats} openAuthor={openAuthor} editBook={editBook} />
         : <YearView stats={stats} data={data} openAuthor={openAuthor} editBook={editBook} />}
       {stats.undated > 0 && (
         <p className="mt-6 text-[11px] text-slate-500">{stats.undated} lecturas no tienen año y no cuentan en las vistas por año.</p>

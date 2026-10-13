@@ -13,6 +13,8 @@ from backend import store
 from backend.geo import world_summary
 from backend.recommend import recommend
 from backend.paths_auto import auto_paths
+from backend import custom_paths
+from backend import genres
 from backend import readings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -143,7 +145,7 @@ class Atlas:
     # ------------------------------------------------------------------
     def all_paths(self):
         if getattr(self, "_all_paths", None) is None:
-            self._all_paths = self.paths + auto_paths(self)
+            self._all_paths = self.paths + custom_paths.expand(self) + auto_paths(self)
         return self._all_paths
 
     def cover_for(self, title, author_name):
@@ -226,6 +228,7 @@ class Atlas:
                 works.append({
                     "title": work["title"],
                     "year": work.get("year"),
+                    "aliases": work.get("aliases", []),
                     "state": best["state"] if best else "LOCKED",
                     "bookId": best["id"] if best else None,
                     "cover": self.cover_for(work["title"], author["name"]),
@@ -246,6 +249,7 @@ class Atlas:
     def snapshot(self):
         mastered_authors = set(self.profile["mastered_authors"])
         reading_index = readings.index(self.profile)
+        genre_index = genres.classify_all(self.books, self.profile["book_metadata"])
         books = []
         for b in self.books:
             books.append({
@@ -261,6 +265,7 @@ class Atlas:
                 "published": b.get("published"),
                 "stateSince": self.state_since.get(b["id"]),
                 **readings.fields(reading_index.get(b["id"], [])),
+                **genre_index.get(b["id"], {"genre": None, "genreSource": None}),
                 "cover": self.cover_for(b["title"], self.authors.get(b["author"], {}).get("name", "")),
                 "regions": [r for r in b.get("regions", []) if r in self.regions],
             })
@@ -316,17 +321,21 @@ class Atlas:
             "recommendations": recommend(self, regions),
             "paths": [
                 {"id": p["id"], "name": p["name"], "period": p.get("period", ""), "auto": bool(p.get("auto")),
-                 "authors": self.path_status(p)}
+                 "custom": bool(p.get("custom")), "description": p.get("description", ""),
+                 "regionIds": p.get("region_ids", []), "authors": self.path_status(p)}
                 for p in self.all_paths()
             ],
         }
 
     # ------------------------------------------------------------------
-    def update_book(self, book_id, state, year, rating, reread, notes, reading_items=None):
+    def update_book(self, book_id, state, year, rating, reread, notes, reading_items=None, genre=None):
         if book_id not in self.books_by_id:
             raise KeyError(book_id)
         if state not in BOOK_STATES:
             raise ValueError("Estado no válido.")
+        if genre not in (None, "") and genre not in genres.GENRES:
+            raise ValueError("Tipo de obra no válido.")
+        previous_genre = self.profile["book_metadata"].get(book_id, {}).get("genre")
         old_state = self.profile["book_statuses"].get(book_id, "LOCKED")
         if reading_items is not None:
             readings.replace(self.profile, book_id, reading_items)
@@ -337,6 +346,7 @@ class Atlas:
             "rating": rating,
             "reread": readings.is_reread(self.profile, book_id) or bool(reread),
             "notes": notes or "",
+            "genre": previous_genre if genre is None else (genre or None),
         }
         self.save()
 

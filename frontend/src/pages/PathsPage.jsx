@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { BookOpen, Check, Eye, Library, Lock, Sparkles, Users } from 'lucide-react'
+import { BookOpen, Check, Copy, Eye, Library, Lock, Pencil, Plus, Sparkles, Trash2, Users } from 'lucide-react'
 import { api } from '../api'
 import Cover from '../components/Cover'
 import PathPicker from '../components/PathPicker'
-import { Card, PageHeader, STATE_META, STATE_ORDER, StatCard, StateBadge, TIER_META, TierBadge, cx } from '../components/ui'
+import PathEditor from '../components/PathEditor'
+import { Button, Card, PageHeader, STATE_META, STATE_ORDER, StatCard, StateBadge, TIER_META, TierBadge, cx } from '../components/ui'
 
 const GAP = 150
 const PAD = 90
@@ -196,6 +197,7 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
   const pathId = paths.some(p => p.id === routeSub) ? routeSub : paths[0]?.id
   const setPathId = id => setSub(id, { replace: true })
   const [selection, setSelection] = useState({})
+  const [editor, setEditor] = useState(null)
 
   const path = paths.find(p => p.id === pathId) || paths[0]
   if (!path) {
@@ -220,12 +222,36 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
     run(() => api.setPathWork(path.id, { author_id: selected.id, work_index: workIndex, state }), `«${work.title}» · ${STATE_META[state].label}`)
   }
 
+  const toolClass = 'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-normal text-slate-400 transition hover:bg-white/5 hover:text-sky-300'
+
+  const duplicatePath = async () => {
+    let createdId = null
+    const ok = await run(async () => {
+      const next = await api.duplicatePath(path.id)
+      createdId = next.createdId
+      return next
+    }, 'Copia creada: ya puedes editarla')
+    if (ok && createdId) {
+      setPathId(createdId)
+      setEditor({ mode: 'edit', pathId: createdId })
+    }
+  }
+
+  const removePath = async () => {
+    if (!window.confirm(`¿Eliminar el camino «${path.name}»? Podrás deshacerlo justo después.`)) return
+    const ok = await run(() => api.deletePath(path.id), 'Camino eliminado')
+    if (ok) setPathId(null)
+  }
+
+  const editorPath = editor?.pathId ? paths.find(p => p.id === editor.pathId) : null
+
   return (
     <>
       <PageHeader
         eyebrow="Caminos"
         title="Caminos literarios"
         subtitle="Recorridos visuales por una tradición. El orden refleja relevancia, no obligación: puedes empezar por cualquier punto."
+        actions={<Button variant="primary" onClick={() => setEditor({ mode: 'create' })}><Plus size={15} />Nuevo camino</Button>}
       />
 
       <PathPicker paths={paths} activeId={path.id} onSelect={setPathId} />
@@ -238,12 +264,24 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
 
       <Card className="mt-6 p-2">
         <div className="flex items-center justify-between px-4 pt-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-white">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
             {path.name}
             {path.auto && <span className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] font-normal text-slate-400">Generado del catálogo</span>}
+            {path.custom && <span className="rounded-md border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 text-[10px] font-normal text-violet-200">Tu camino</span>}
+            <span className="ml-1 flex items-center gap-1">
+              {path.custom ? (
+                <>
+                  <button type="button" onClick={() => setEditor({ mode: 'edit', pathId: path.id })} className={toolClass}><Pencil size={12} />Editar</button>
+                  <button type="button" onClick={removePath} className={toolClass}><Trash2 size={12} />Eliminar</button>
+                </>
+              ) : (
+                <button type="button" onClick={duplicatePath} className={toolClass}><Copy size={12} />Personalizar</button>
+              )}
+            </span>
           </div>
           <Legend />
         </div>
+        {path.description && <p className="px-4 pt-1 text-xs text-slate-400">{path.description}</p>}
         {!anyStarted && (
           <p className="px-4 pt-1 text-xs text-slate-400">Todavía no has leído nada de este camino. El punto de entrada sugerido es {authors[0].name}, pero puedes empezar por cualquiera.</p>
         )}
@@ -262,6 +300,21 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
           <AuthorPanel author={selected} position={authors.indexOf(selected) + 1} total={authors.length} workIndex={workIndex} onSelectWork={index => setCurrent({ work: index })} auto={path.auto} />
           <WorkPanel work={selected.works[workIndex]} onChange={changeState} />
         </div>
+      )}
+
+      {editor && (editor.mode === 'create' || editorPath) && (
+        <PathEditor
+          key={editor.pathId || 'new'}
+          data={data}
+          run={run}
+          mode={editor.mode}
+          path={editorPath}
+          onClose={() => setEditor(null)}
+          onSaved={id => {
+            setEditor(null)
+            if (id) setPathId(id)
+          }}
+        />
       )}
     </>
   )
