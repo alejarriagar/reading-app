@@ -30,4 +30,5 @@ export const api = {
   undo: () => request('/undo', { method: 'POST' }),
   history: () => request('/history'),
   dismissRecommendation: bookId => request(`/recommendations/${id(bookId)}/dismiss`, { method: 'POST' }),
+  reread: bookId => request(`/books/${id(bookId)}/reread`, { method: 'POST' }),
 }

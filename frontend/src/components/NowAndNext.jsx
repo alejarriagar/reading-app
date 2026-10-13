@@ -10,13 +10,15 @@ const KIND = {
   new: { label: 'Territorio nuevo', className: 'border-violet-400/30 bg-violet-400/10 text-violet-300' },
 }
 
-function sinceText(stateSince, trackingSince) {
-  if (!stateSince) return null
-  if (trackingSince && stateSince.slice(0, 16) <= trackingSince.slice(0, 16)) return null
-  const days = Math.floor((Date.now() - new Date(stateSince).getTime()) / 86400000)
-  if (days <= 0) return 'Empezado hoy'
-  if (days === 1) return 'Empezado ayer'
-  return `Empezado hace ${days} días`
+function sinceText(started, isReread) {
+  if (!started || started.length < 10) return null
+  const [y, m, d] = started.split('-').map(Number)
+  const now = new Date()
+  const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 86400000)
+  const verb = isReread ? 'Relectura empezada' : 'Empezado'
+  if (days <= 0) return `${verb} hoy`
+  if (days === 1) return `${verb} ayer`
+  return `${verb} hace ${days} días`
 }
 
 function payload(book, state, year = book.year ?? null) {
@@ -48,7 +50,7 @@ function Reading({ data, run, editBook, openAuthor, regionsById }) {
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-400">
           <BookOpen size={12} />Leyendo ahora
         </div>
-        {reading.length > 1 && <span className="text-xs text-slate-500">{reading.length} lecturas en curso</span>}
+        <span className="text-xs text-slate-500">{reading.length > 1 ? `${reading.length} lecturas en curso · ` : ''}{data.summary.finishedThisYear || 0} terminadas este año</span>
       </div>
 
       {reading.length === 0 ? (
@@ -62,7 +64,7 @@ function Reading({ data, run, editBook, openAuthor, regionsById }) {
       ) : (
         <div className="mt-4 space-y-5">
           {reading.slice(0, 2).map(book => {
-            const since = sinceText(book.stateSince, tracking)
+            const since = sinceText(book.currentReading?.started, book.currentReading?.reread)
             return (
               <div key={book.id} className="flex gap-5">
                 <Cover src={book.cover} size="lg" />

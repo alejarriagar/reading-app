@@ -12,6 +12,7 @@ from pathlib import Path
 from backend import store
 from backend.geo import world_summary
 from backend.recommend import recommend
+from backend import readings
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_FILE = ROOT / "assets" / "catalog.json"
@@ -69,6 +70,10 @@ class Atlas:
         self.state_since = store.state_timestamps()
         self.tracking_since = store.get_meta("created_at")
         self._index()
+        if readings.initialize(self.profile):
+            self.label = "Preparar historial de lecturas"
+            self.save()
+            self.label = "Cambio"
 
     # ------------------------------------------------------------------
     def _index(self):
@@ -233,6 +238,7 @@ class Atlas:
 
     def snapshot(self):
         mastered_authors = set(self.profile["mastered_authors"])
+        reading_index = readings.index(self.profile)
         books = []
         for b in self.books:
             books.append({
@@ -247,6 +253,7 @@ class Atlas:
                 "notes": b.get("notes") or "",
                 "published": b.get("published"),
                 "stateSince": self.state_since.get(b["id"]),
+                **readings.fields(reading_index.get(b["id"], [])),
                 "cover": self.cover_for(b["title"], self.authors.get(b["author"], {}).get("name", "")),
                 "regions": [r for r in b.get("regions", []) if r in self.regions],
             })
@@ -281,10 +288,7 @@ class Atlas:
         regions = [self.region_summary(region_id) for region_id in self.regions]
         read = [b for b in books if b["state"] == "READ"]
         ratings = [b["rating"] for b in read if b["rating"] is not None]
-        by_year = defaultdict(int)
-        for b in read:
-            if b["year"]:
-                by_year[str(b["year"])] += 1
+        by_year = readings.finished_by_year(self.profile, read)
 
         return {
             "summary": {
@@ -296,6 +300,7 @@ class Atlas:
                 "averageRating": sum(ratings) / len(ratings) if ratings else None,
                 "byYear": dict(by_year),
                 "trackingSince": self.tracking_since,
+                "finishedThisYear": by_year.get(str(datetime.now().year), 0),
             },
             "regions": regions,
             "authors": authors,
@@ -309,18 +314,32 @@ class Atlas:
         }
 
     # ------------------------------------------------------------------
-    def update_book(self, book_id, state, year, rating, reread, notes):
+    def update_book(self, book_id, state, year, rating, reread, notes, reading_items=None):
         if book_id not in self.books_by_id:
             raise KeyError(book_id)
         if state not in BOOK_STATES:
             raise ValueError("Estado no válido.")
+        old_state = self.profile["book_statuses"].get(book_id, "LOCKED")
+        if reading_items is not None:
+            readings.replace(self.profile, book_id, reading_items)
+        readings.apply_state(self.profile, book_id, old_state, state)
         self.profile["book_statuses"][book_id] = state
         self.profile["book_metadata"][book_id] = {
-            "year": year,
+            "year": readings.latest_year(self.profile, book_id) or year,
             "rating": rating,
-            "reread": bool(reread),
+            "reread": readings.is_reread(self.profile, book_id) or bool(reread),
             "notes": notes or "",
         }
+        self.save()
+
+    def start_reread(self, book_id):
+        if book_id not in self.books_by_id:
+            raise KeyError(book_id)
+        readings.start_reread(self.profile, book_id)
+        self.profile["book_statuses"][book_id] = "READING"
+        metadata = dict(self.profile["book_metadata"].get(book_id, {}))
+        metadata["reread"] = True
+        self.profile["book_metadata"][book_id] = metadata
         self.save()
 
     def add_book(self, title, author_name, country="", period="", movements=None,
@@ -374,6 +393,7 @@ class Atlas:
             "regions": region_ids,
         })
         self.profile["book_statuses"][book_id] = state
+        readings.apply_state(self.profile, book_id, "LOCKED", state)
         if state == "READ":
             self.profile["book_metadata"][book_id] = {
                 "year": datetime.now().year, "rating": None, "reread": False, "notes": "",
@@ -437,8 +457,8 @@ class Atlas:
             )
 
         metadata = dict(self.profile["book_metadata"].get(book_id, {}))
-        if state == "READ" and not metadata.get("year"):
-            metadata["year"] = datetime.now().year
+        readings.apply_state(self.profile, book_id, self.profile["book_statuses"].get(book_id, "LOCKED"), state)
+        metadata["year"] = readings.latest_year(self.profile, book_id) or metadata.get("year")
         self.profile["book_statuses"][book_id] = state
         self.profile["book_metadata"][book_id] = metadata
         self.save()

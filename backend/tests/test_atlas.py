@@ -148,3 +148,55 @@ def test_no_recomienda_lo_que_estas_leyendo(env):
     Atlas().update_book("b2", "READING", None, None, False, "")
     recs = Atlas().snapshot()["recommendations"]
     assert "b2" not in [r["bookId"] for r in recs]
+
+def _book(snapshot, book_id):
+    return next(b for b in snapshot["books"] if b["id"] == book_id)
+
+
+def test_fechas_de_lectura_automaticas(env):
+    from backend.readings import today
+    Atlas().update_book("b1", "READING", None, None, False, "")
+    assert _book(Atlas().snapshot(), "b1")["currentReading"]["started"] == today()
+
+    Atlas().update_book("b1", "READ", None, 8.0, False, "")
+    snapshot = Atlas().snapshot()
+    book = _book(snapshot, "b1")
+    assert book["currentReading"] is None
+    assert book["readCount"] == 1
+    assert book["readings"][0]["finished"] == today()
+    assert book["year"] == int(today()[:4])
+    assert snapshot["summary"]["byYear"][today()[:4]] == 1
+
+
+def test_relectura(env):
+    Atlas().update_book("b1", "READ", None, None, False, "")
+    Atlas().start_reread("b1")
+    with pytest.raises(ValueError):
+        Atlas().start_reread("b1")
+    Atlas().update_book("b1", "READ", None, None, False, "")
+    book = _book(Atlas().snapshot(), "b1")
+    assert book["readCount"] == 2
+    assert book["reread"] is True
+
+
+def test_fechas_invalidas_y_parciales(env):
+    with pytest.raises(ValueError):
+        Atlas().update_book("b1", "READ", None, None, False, "", [{"status": "done", "started": "2024-13-01"}])
+    with pytest.raises(ValueError):
+        Atlas().update_book("b1", "READ", None, None, False, "",
+                            [{"status": "done", "started": "2024-05-10", "finished": "2024-05-01"}])
+    Atlas().update_book("b1", "READ", None, None, False, "", [{"status": "done", "started": "2023", "finished": "2023-06"}])
+    assert Atlas().snapshot()["summary"]["byYear"] == {"2023": 1}
+
+
+def test_historial_inicial_desde_datos_antiguos(env):
+    store.LEGACY_FILE.write_text(json.dumps({
+        "book_statuses": {"b1": "READ"},
+        "book_metadata": {"b1": {"year": 2024, "rating": 9.0, "reread": True, "notes": ""}},
+    }), encoding="utf-8")
+    snapshot = Atlas().snapshot()
+    book = _book(snapshot, "b1")
+    assert book["readCount"] == 1
+    assert book["readings"][0]["finished"] == "2024"
+    assert book["readings"][0]["reread"] is True
+    assert snapshot["summary"]["byYear"] == {"2024": 1}

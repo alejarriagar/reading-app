@@ -21,7 +21,7 @@ export function isIdeaRegion(region) {
 export function detectDiscovery(before, after) {
   const oldBooks = new Map(before.books.map(b => [b.id, b]))
   const book = after.books.find(b => b.state === 'READ' && oldBooks.get(b.id)?.state !== 'READ')
-  if (!book) return null
+  if (!book || (book.readCount || 0) > 1) return null
 
   const oldRegions = new Map(before.regions.map(r => [r.id, r]))
   const wasLocked = region => (oldRegions.get(region.id)?.state ?? 'LOCKED') === 'LOCKED'

@@ -22,7 +22,7 @@ BOOK_STATES = ("LOCKED", "DISCOVERED", "READING", "READ")
 TIERS = ("ESSENTIAL", "RECOMMENDED", "SPECIALIZED")
 LIST_MARKS = ("mastered_regions", "mastered_authors", "discovered_regions", "discovered_authors")
 CUSTOM = {"custom_books": "book", "custom_authors": "author", "custom_regions": "region"}
-KNOWN = {"book_statuses", "book_metadata", "tier_overrides", "author_region_additions", *LIST_MARKS, *CUSTOM}
+KNOWN = {"book_statuses", "book_metadata", "tier_overrides", "author_region_additions", "readings", *LIST_MARKS, *CUSTOM}
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS author_region (
   author_id TEXT NOT NULL,
   region_id TEXT NOT NULL,
   PRIMARY KEY (author_id, region_id)
+);
+CREATE TABLE IF NOT EXISTS reading (
+  id TEXT PRIMARY KEY,
+  book_id TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('open', 'done')),
+  started TEXT,
+  finished TEXT,
+  reread INTEGER NOT NULL DEFAULT 0,
+  note TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS event (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -150,6 +160,20 @@ def _write(conn, profile):
     pairs = {(a, r) for a, regions in profile.get("author_region_additions", {}).items() for r in regions}
     conn.executemany("INSERT INTO author_region (author_id, region_id) VALUES (?, ?)", sorted(pairs))
 
+    conn.execute("DELETE FROM reading")
+    reading_rows, reading_ids = [], set()
+    for position, item in enumerate(profile.get("readings", [])):
+        reading_id = str(item.get("id") or f"r-{position}")
+        if reading_id in reading_ids:
+            continue
+        reading_ids.add(reading_id)
+        reading_rows.append((reading_id, item["book"], position, item.get("status", "done"), item.get("started"),
+                             item.get("finished"), 1 if item.get("reread") else 0, item.get("note") or ""))
+    conn.executemany(
+        "INSERT INTO reading (id, book_id, position, status, started, finished, reread, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        reading_rows,
+    )
+
     extra = {k: v for k, v in profile.items() if k not in KNOWN}
     _set_meta(conn, "extra", json.dumps(extra, ensure_ascii=False))
 
@@ -170,6 +194,10 @@ def _read(conn, default):
     for author_id, region_id in conn.execute("SELECT author_id, region_id FROM author_region ORDER BY author_id, region_id"):
         additions.setdefault(author_id, []).append(region_id)
     profile["author_region_additions"] = additions
+    profile["readings"] = [
+        {"id": r[0], "book": r[1], "status": r[2], "started": r[3], "finished": r[4], "reread": bool(r[5]), "note": r[6]}
+        for r in conn.execute("SELECT id, book_id, status, started, finished, reread, note FROM reading ORDER BY position")
+    ]
     row = conn.execute("SELECT value FROM meta WHERE key = 'extra'").fetchone()
     if row:
         profile.update({k: v for k, v in json.loads(row[0]).items() if k not in KNOWN})

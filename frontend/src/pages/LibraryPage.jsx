@@ -202,7 +202,7 @@ export default function LibraryPage({ data, run, editBook, openAuthor, routeSub,
                   <td className="px-5 py-3"><StateBadge state={book.state} /></td>
                   <td className="px-5 py-3 tabular-nums text-slate-400">{book.year ?? '—'}</td>
                   <td className="px-5 py-3">{book.rating != null ? <Rating value={book.rating} /> : <span className="text-slate-600">—</span>}</td>
-                  <td className="px-5 py-3">{book.reread && <RotateCcw size={14} className="text-sky-400" />}</td>
+                  <td className="px-5 py-3">{(book.reread || book.readCount > 1) && <span className="inline-flex items-center gap-1 text-xs text-sky-300"><RotateCcw size={13} />{book.readCount > 1 ? `×${book.readCount}` : ''}</span>}</td>
                 </tr>
               ))}
             </tbody>

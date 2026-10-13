@@ -38,12 +38,22 @@ def execute(action=None):
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+class ReadingIn(BaseModel):
+    id: str | None = None
+    status: str = "done"
+    started: str | None = None
+    finished: str | None = None
+    reread: bool = False
+    note: str = Field(default="", max_length=500)
+
+
 class BookUpdate(BaseModel):
     state: str
     year: int | None = Field(default=None, ge=1000, le=2200)
     rating: float | None = Field(default=None, ge=0, le=10)
     reread: bool = False
     notes: str = Field(default="", max_length=5000)
+    readings: list[ReadingIn] | None = None
 
 
 class NewBook(BaseModel):
@@ -78,7 +88,8 @@ def update_book(book_id: str, body: BookUpdate):
     def action(atlas):
         title = atlas.books_by_id.get(book_id, {}).get("title", book_id)
         atlas.label = f"Editar «{title}»"
-        atlas.update_book(book_id, body.state, body.year, body.rating, body.reread, body.notes)
+        atlas.update_book(book_id, body.state, body.year, body.rating, body.reread, body.notes,
+                          None if body.readings is None else [r.model_dump() for r in body.readings])
     return execute(action)
 
 
@@ -119,6 +130,15 @@ def set_path_work(path_id: str, body: PathWorkUpdate):
     def action(atlas):
         atlas.label = "Cambiar estado desde un camino"
         atlas.set_path_work(path_id, body.author_id, body.work_index, body.state)
+    return execute(action)
+
+
+@app.post("/api/books/{book_id}/reread")
+def reread_book(book_id: str):
+    def action(atlas):
+        title = atlas.books_by_id.get(book_id, {}).get("title", book_id)
+        atlas.label = f"Releer «{title}»"
+        atlas.start_reread(book_id)
     return execute(action)
 
 
