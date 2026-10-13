@@ -74,7 +74,7 @@ export default function Overview({ data, run, go, openAuthor, editBook, openComp
         </Card>
 
         <Card className="p-6">
-          <CardTitle title="Lecturas por año" />
+          <CardTitle title="Lecturas por año" action={<LinkButton onClick={() => go('stats')}>Tu año en libros</LinkButton>} />
           <div className="mt-6 flex h-44 items-end gap-3">
             {years.map(([year, count]) => (
               <div key={year} className="flex flex-1 flex-col items-center justify-end gap-2">

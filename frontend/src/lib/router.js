@@ -6,6 +6,7 @@ export const PAGE_SLUGS = {
   map: 'territorios',
   paths: 'caminos',
   library: 'biblioteca',
+  stats: 'adn',
 }
 const SLUG_PAGES = Object.fromEntries(Object.entries(PAGE_SLUGS).map(([page, slug]) => [slug, page]))
 

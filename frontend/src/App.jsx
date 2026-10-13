@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, BookMarked, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route, Search } from 'lucide-react'
+import { AlertTriangle, BookMarked, Fingerprint, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route, Search } from 'lucide-react'
 import { api } from './api'
 import Overview from './pages/Overview'
 import WorldPage from './pages/WorldPage'
+import StatsPage from './pages/StatsPage'
 import MapPage from './pages/MapPage'
 import PathsPage from './pages/PathsPage'
 import LibraryPage from './pages/LibraryPage'
@@ -20,9 +21,10 @@ const NAV = [
   { id: 'map', label: 'Territorios', icon: MapIcon },
   { id: 'paths', label: 'Caminos', icon: Route },
   { id: 'library', label: 'Biblioteca', icon: Library },
+  { id: 'stats', label: 'ADN lector', icon: Fingerprint },
 ]
 
-const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage }
+const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage, stats: StatsPage }
 
 const isTyping = target =>
   target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)

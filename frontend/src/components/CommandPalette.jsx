@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, Compass, CornerDownLeft, Globe, LayoutDashboard, Library, Map as MapIcon, Plus, Route, Search, User } from 'lucide-react'
+import { BookOpen, Compass, CornerDownLeft, Fingerprint, Globe, LayoutDashboard, Library, Map as MapIcon, Plus, Route, Search, User } from 'lucide-react'
 import { StateBadge, cx } from './ui'
 
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -10,6 +10,7 @@ const PAGE_ENTRIES = [
   { id: 'map', title: 'Territorios', icon: MapIcon },
   { id: 'paths', title: 'Caminos', icon: Route },
   { id: 'library', title: 'Biblioteca', icon: Library },
+  { id: 'stats', title: 'ADN lector', icon: Fingerprint, keywords: 'adn lector estadisticas resumen anual tu año en libros' },
 ]
 
 const GROUP_LABELS = {
@@ -71,7 +72,7 @@ export default function CommandPalette({ open, data, onClose, onSelect }) {
   }, [open])
 
   const entries = useMemo(() => {
-    const list = PAGE_ENTRIES.map(page => ({ type: 'page', ...page, keywords: page.title }))
+    const list = PAGE_ENTRIES.map(page => ({ type: 'page', ...page, keywords: page.keywords || page.title }))
     list.push({ type: 'action', id: 'compass', title: '¿Hacia dónde ahora?', subtitle: 'Abrir la brújula de exploración', icon: Compass, keywords: 'brujula explorar sorprendeme hacia donde ahora' })
     list.push({ type: 'action', id: 'add-book', title: 'Añadir una obra', subtitle: 'Biblioteca', icon: Plus, keywords: 'anadir nueva obra libro' })
     Object.values(data.authors).forEach(author => list.push({
