@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Lock, Plus, RotateCcw, Search } from 'lucide-react'
 import { api } from '../api'
+import Cover from '../components/Cover'
 import { Button, Card, Field, Modal, PageHeader, Segmented, STATE_META, STATE_ORDER, StateBadge, cx, inputClass } from '../components/ui'
 
 const PAGE_SIZE = 20
@@ -187,10 +188,15 @@ export default function LibraryPage({ data, run, editBook, openAuthor }) {
               {visible.map(book => (
                 <tr key={book.id} onClick={() => editBook(book.id)} className={cx('cursor-pointer transition hover:bg-white/[0.03]', book.state === 'LOCKED' && 'opacity-60')}>
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-2 font-medium text-slate-100">
-                      {book.state === 'LOCKED' && <Lock size={12} className="text-slate-500" />}{book.title}
+                    <div className="flex items-center gap-3">
+                      <Cover src={book.cover} title={book.title} size="sm" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 font-medium text-slate-100">
+                          {book.state === 'LOCKED' && <Lock size={12} className="text-slate-500" />}{book.title}
+                        </div>
+                        <button type="button" onClick={e => { e.stopPropagation(); openAuthor(book.author) }} className="mt-0.5 text-xs text-slate-500 hover:text-sky-300">{book.authorName}</button>
+                      </div>
                     </div>
-                    <button type="button" onClick={e => { e.stopPropagation(); openAuthor(book.author) }} className="mt-0.5 text-xs text-slate-500 hover:text-sky-300">{book.authorName}</button>
                   </td>
                   <td className="px-5 py-3"><StateBadge state={book.state} /></td>
                   <td className="px-5 py-3 tabular-nums text-slate-400">{book.year ?? '—'}</td>

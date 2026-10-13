@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BookOpen, Check, Eye, Library, Lock, Sparkles, Users } from 'lucide-react'
 import { api } from '../api'
+import Cover from '../components/Cover'
 import { Card, PageHeader, STATE_META, STATE_ORDER, StatCard, StateBadge, TIER_META, TierBadge, cx } from '../components/ui'
 
 const GAP = 150
@@ -153,6 +154,7 @@ function AuthorPanel({ author, position, total, workIndex, onSelectWork }) {
         {author.works.map((work, index) => (
           <button key={work.title} type="button" onClick={() => onSelectWork(index)} className={cx('flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition', index === workIndex ? 'border-sky-500/30 bg-sky-500/[0.06]' : 'border-transparent hover:bg-white/[0.03]')}>
             <span className="w-5 text-xs tabular-nums text-slate-500">{index + 1}</span>
+            <Cover src={work.cover} title={work.title} size="xs" />
             <span className={cx('flex-1 text-sm', work.state === 'LOCKED' ? 'text-slate-400' : 'text-slate-100')}>
               {work.title}<span className="ml-2 text-xs text-slate-500">{work.year}</span>
             </span>

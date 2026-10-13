@@ -88,10 +88,15 @@ export function buildCompass(data, anchor = {}) {
   const ideaRegions = [...new Set([...(author?.regions || []), ...(region?.frontiers || [])])]
     .map(id => regionsById.get(id))
     .filter(r => r && r.id !== region?.id && isIdeaRegion(r))
-  const related = (author?.related || [])
-    .map(id => authorItem(data, id, { subtitle: `Conectado con ${author.name}` }))
+  const linkSubtitle = id => {
+    if ((author?.influencedBy || []).includes(id)) return `Influyó en ${author.name}`
+    if ((author?.influenced || []).includes(id)) return `Influido por ${author.name}`
+    return `Conectado con ${author.name}`
+  }
+  const related = [...new Set([...(author?.influencedBy || []), ...(author?.influenced || []), ...(author?.related || [])])]
+    .map(id => authorItem(data, id, { subtitle: linkSubtitle(id) }))
     .filter(Boolean)
-  const influence = [...related, ...ideaRegions.map(regionItem)].slice(0, 5)
+  const influence = [...related, ...ideaRegions.map(regionItem)].slice(0, 7)
 
   const samePrefix = region ? data.regions.filter(r => r.id !== region.id && prefix(r) === prefix(region)) : []
   const periods = data.regions.filter(r => PERIOD_ONLY.test(r.type) && r.id !== region?.id && !samePrefix.includes(r))

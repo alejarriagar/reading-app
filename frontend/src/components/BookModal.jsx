@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../api'
+import Cover from './Cover'
 import { Button, Field, Modal, Segmented, STATE_META, STATE_ORDER, cx, inputClass } from './ui'
 
 export default function BookModal({ book, run, onClose }) {
@@ -33,6 +34,13 @@ export default function BookModal({ book, run, onClose }) {
       onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button variant="primary" onClick={submit}>Guardar cambios</Button></>}
     >
+      <div className="mb-5 flex items-center gap-4">
+        <Cover src={book.cover} title={book.title} size="md" />
+        <div className="text-xs leading-relaxed text-slate-400">
+          {book.published ? <div>Publicada en {book.published}</div> : null}
+          <div>{book.authorName}</div>
+        </div>
+      </div>
       <Field as="div" label="Estado">
         <Segmented value={form.state} onChange={value => set('state', value)} options={STATE_ORDER.map(state => ({ value: state, label: STATE_META[state].label }))} />
       </Field>

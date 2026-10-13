@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, BookMarked, LayoutDashboard, Library, Loader2, Map as MapIcon, Route } from 'lucide-react'
+import { AlertTriangle, BookMarked, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route } from 'lucide-react'
 import { api } from './api'
 import Overview from './pages/Overview'
 import MapPage from './pages/MapPage'
 import PathsPage from './pages/PathsPage'
+import WorldPage from './pages/WorldPage'
 import LibraryPage from './pages/LibraryPage'
 import AuthorDrawer from './components/AuthorDrawer'
 import BookModal from './components/BookModal'
@@ -13,12 +14,13 @@ import { ProgressBar, Toast, cx } from './components/ui'
 
 const NAV = [
   { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
-  { id: 'map', label: 'Mapa', icon: MapIcon },
+  { id: 'world', label: 'Mundo', icon: Globe },
+  { id: 'map', label: 'Territorios', icon: MapIcon },
   { id: 'paths', label: 'Caminos', icon: Route },
   { id: 'library', label: 'Biblioteca', icon: Library },
 ]
 
-const PAGES = { overview: Overview, map: MapPage, paths: PathsPage, library: LibraryPage }
+const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage }
 
 export default function App() {
   const [data, setData] = useState(null)
