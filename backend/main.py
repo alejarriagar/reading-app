@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from backend import accounts, custom_paths, library, store
 from backend.atlas import DEFAULT_PROFILE, Atlas
 
+from backend import wishlist
+
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "frontend" / "dist"
 SESSION_COOKIE = "atlas_session"
@@ -468,6 +470,77 @@ def import_library(body: ImportIn, user: dict = Depends(current_user)):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
     payload["import"] = result
     return payload
+
+
+class WishIn(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    author: str = Field(default="", max_length=200)
+    isbn: str = ""
+    publisher: str = ""
+    edition_year: int | None = None
+    language: str = ""
+    cover: str = ""
+    priority: str = "NORMAL"
+    notes: str = Field(default="", max_length=2000)
+
+
+class WishReserveIn(BaseModel):
+    reserved: bool
+
+
+class WishAcquireIn(CopyIn):
+    allow_duplicate: bool = False
+
+
+def wishlist_call(action=None):
+    with LOCK:
+        try:
+            result = action() if action is not None else None
+            payload = {"items": wishlist.list_items()}
+            if result is not None:
+                payload["resultId"] = result
+            return payload
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Deseo no encontrado.") from exc
+        except (ValueError, sqlite3.IntegrityError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/wishlist")
+def get_wishlist(user: dict = Depends(current_user)):
+    return wishlist_call()
+
+
+@app.post("/api/wishlist")
+def add_wish(body: WishIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.create(body.model_dump(), user))
+
+
+@app.put("/api/wishlist/{wish_id}")
+def update_wish(wish_id: str, body: WishIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.update(wish_id, body.model_dump()))
+
+
+@app.delete("/api/wishlist/{wish_id}")
+def delete_wish(wish_id: str, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.delete(wish_id))
+
+
+@app.post("/api/wishlist/{wish_id}/reserve")
+def reserve_wish(wish_id: str, body: WishReserveIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.reserve(wish_id, user, body.reserved))
+
+
+@app.post("/api/wishlist/{wish_id}/acquire")
+def acquire_wish(wish_id: str, body: WishAcquireIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.acquire(
+        wish_id,
+        body.model_dump(exclude={"allow_duplicate"}),
+        user,
+        body.allow_duplicate,
+    ))
 
 
 @app.post("/api/undo")

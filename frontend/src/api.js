@@ -56,4 +56,10 @@ export const api = {
   isbn: value => request(`/isbn/${id(value)}`),
   importPreview: body => request('/library/import/preview', json('POST', body)),
   importRows: body => request('/library/import', json('POST', body)),
+  wishlist: () => request('/wishlist'),
+  addWish: body => request('/wishlist', json('POST', body)),
+  updateWish: (wishId, body) => request(`/wishlist/${id(wishId)}`, json('PUT', body)),
+  deleteWish: wishId => request(`/wishlist/${id(wishId)}`, { method: 'DELETE' }),
+  reserveWish: (wishId, reserved) => request(`/wishlist/${id(wishId)}/reserve`, json('POST', { reserved })),
+  acquireWish: (wishId, body) => request(`/wishlist/${id(wishId)}/acquire`, json('POST', body)),
 }

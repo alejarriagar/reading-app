@@ -5,6 +5,7 @@ import Cover from '../components/Cover'
 import CopyModal from '../components/CopyModal'
 import HousesModal from '../components/HousesModal'
 import ImportModal from '../components/ImportModal'
+import WishlistSection from '../components/WishlistSection'
 import { Button, Card, PageHeader, Segmented, StatCard, cx, inputClass } from '../components/ui'
 import { FORMAT_LABELS, initials, normalize } from '../lib/shelves'
 
@@ -50,6 +51,7 @@ export default function ShelvesPage({ data, run, editBook }) {
   const [page, setPage] = useState(0)
   const [modal, setModal] = useState(null)
   const [notice, setNotice] = useState('')
+  const [view, setView] = useState('shelves')
   const me = data.me
 
   const load = useCallback(() => {
@@ -123,6 +125,27 @@ export default function ShelvesPage({ data, run, editBook }) {
         }
       />
 
+      <div className="mb-5">
+        <Segmented
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'shelves', label: 'Nuestros ejemplares' },
+            { value: 'wishlist', label: 'Deseos compartidos' },
+          ]}
+        />
+      </div>
+
+      {view === 'wishlist' && (
+        <WishlistSection
+          lib={lib}
+          me={me}
+          run={run}
+          onInventoryChange={next => apply(next)}
+        />
+      )}
+
+      <div className={view === 'wishlist' ? 'hidden' : ''}>
       {notice && <div className="fade-in mb-4 inline-flex rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">{notice}</div>}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -242,6 +265,8 @@ export default function ShelvesPage({ data, run, editBook }) {
           </div>
         </Card>
       )}
+
+      </div>
 
       {modal?.type === 'copy' && (
         <CopyModal key={modal.copy?.id || 'new'} copy={modal.copy} lib={lib} me={me} run={run} editBook={editBook} onClose={() => setModal(null)} onSaved={saved} />

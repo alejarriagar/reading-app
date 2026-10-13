@@ -405,3 +405,92 @@ def test_importar_csv(env):
     again = library.import_rows(parsed["rows"], default, None, True, None)
     assert again["created"] == 0
     assert again["skipped"] == 2
+
+
+def test_deseos_compartidos_y_reservas(env):
+    from backend import wishlist
+    me = accounts.create_user("Yo", "clave123", is_owner=True)
+    dad = accounts.create_user("Papá", "clave456")
+
+    wish_id = wishlist.create({
+        "title": "Libro Uno",
+        "author": "Autora Uno",
+        "priority": "HIGH",
+        "notes": "Queremos una edición de bolsillo.",
+    }, me)
+
+    item = next(i for i in wishlist.list_items() if i["id"] == wish_id)
+    assert item["requestedName"] == "Yo"
+    assert item["state"] == "WANTED"
+
+    wishlist.reserve(wish_id, dad, True)
+    item = next(i for i in wishlist.list_items() if i["id"] == wish_id)
+    assert item["reservedName"] == "Papá"
+
+    with pytest.raises(PermissionError):
+        wishlist.reserve(wish_id, me, True)
+
+    wishlist.reserve(wish_id, dad, False)
+    assert next(i for i in wishlist.list_items() if i["id"] == wish_id)["state"] == "WANTED"
+
+
+def test_conseguir_deseo_crea_ejemplar_sin_marcar_lectura(env):
+    from backend import library, wishlist
+    me = accounts.create_user("Yo", "clave123", is_owner=True)
+    house_id = library.list_houses()[0]["id"]
+
+    wish_id = wishlist.create({
+        "title": "Libro Uno",
+        "author": "Autora Uno",
+    }, me)
+
+    body = {
+        "house_id": house_id,
+        "owner_id": me["id"],
+        "format": "POCKET",
+    }
+
+    copy_id = wishlist.acquire(wish_id, body, me)
+    assert len(library.list_copies()) == 1
+    assert next(i for i in wishlist.list_items() if i["id"] == wish_id)["state"] == "ACQUIRED"
+    assert Atlas().books_by_id["b1"]["state"] == "LOCKED"
+
+    # Repetir la misma petición no crea un duplicado.
+    assert wishlist.acquire(wish_id, body, me) == copy_id
+    assert len(library.list_copies()) == 1
+
+    wishlist.delete(wish_id)
+    assert len(library.list_copies()) == 1
+
+
+def test_deseo_avisa_de_ejemplar_existente(env):
+    from backend import library, wishlist
+    me = accounts.create_user("Yo", "clave123", is_owner=True)
+    house_id = library.list_houses()[0]["id"]
+
+    library.add_copy({
+        "title": "Libro Uno",
+        "author": "Autora Uno",
+        "house_id": house_id,
+    }, me["id"])
+
+    wish_id = wishlist.create({
+        "title": "Libro Uno",
+        "author": "Autora Uno",
+    }, me)
+
+    item = next(i for i in wishlist.list_items() if i["id"] == wish_id)
+    assert len(item["matches"]) == 1
+
+    with pytest.raises(ValueError):
+        wishlist.acquire(wish_id, {"house_id": house_id}, me)
+
+    assert len(library.list_copies()) == 1
+
+    wishlist.acquire(
+        wish_id,
+        {"house_id": house_id},
+        me,
+        allow_duplicate=True,
+    )
+    assert len(library.list_copies()) == 2
