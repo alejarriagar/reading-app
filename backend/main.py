@@ -122,6 +122,19 @@ def set_path_work(path_id: str, body: PathWorkUpdate):
     return execute(action)
 
 
+@app.post("/api/recommendations/{book_id}/dismiss")
+def dismiss_recommendation(book_id: str):
+    def action(atlas):
+        if book_id not in atlas.books_by_id:
+            raise KeyError(book_id)
+        atlas.label = f"Descartar sugerencia «{atlas.books_by_id[book_id]['title']}»"
+        dismissed = atlas.profile.setdefault("dismissed_recommendations", [])
+        if book_id not in dismissed:
+            dismissed.append(book_id)
+            atlas.save()
+    return execute(action)
+
+
 @app.post("/api/undo")
 def undo():
     with LOCK:

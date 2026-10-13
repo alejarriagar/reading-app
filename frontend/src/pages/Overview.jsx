@@ -1,5 +1,6 @@
 import { ArrowUpRight, BookCheck, BookOpen, Compass, Lock, Star, Users } from 'lucide-react'
 import { Button, Card, PageHeader, ProgressBar, StatCard } from '../components/ui'
+import NowAndNext from '../components/NowAndNext'
 
 function CardTitle({ title, action }) {
   return (
@@ -18,7 +19,7 @@ function LinkButton({ onClick, children }) {
   )
 }
 
-export default function Overview({ data, go, openAuthor, editBook, openCompass }) {
+export default function Overview({ data, run, go, openAuthor, editBook, openCompass }) {
   const { summary, regions, authors, books } = data
   const unlocked = regions.filter(r => r.state !== 'LOCKED').sort((a, b) => b.rate - a.rate)
   const years = Object.entries(summary.byYear).sort(([a], [b]) => Number(a) - Number(b))
@@ -42,6 +43,8 @@ export default function Overview({ data, go, openAuthor, editBook, openCompass }
         subtitle="No se trata de cuántos libros has leído, sino de qué territorios has explorado y cuáles te quedan por descubrir."
         actions={<Button variant="primary" onClick={() => openCompass({ regionId: unlocked[0]?.id ?? null })}><Compass size={15} />¿Hacia dónde ahora?</Button>}
       />
+
+      <NowAndNext data={data} run={run} editBook={editBook} openAuthor={openAuthor} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={BookCheck} label="Obras leídas" value={summary.booksRead} hint={summary.averageRating != null ? `Nota media ${summary.averageRating.toFixed(1)}` : 'Lecturas terminadas'} tone="blue" />

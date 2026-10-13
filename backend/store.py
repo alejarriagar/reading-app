@@ -260,3 +260,18 @@ def maybe_backup():
     if time.time() - newest >= BACKUP_EVERY_HOURS * 3600:
         return backup("auto")
     return None
+
+
+def state_timestamps():
+    if not DB_FILE.exists():
+        return {}
+    with closing(connect()) as conn:
+        return {r[0]: r[1] for r in conn.execute("SELECT book_id, updated_at FROM book_state")}
+
+
+def get_meta(key):
+    if not DB_FILE.exists():
+        return None
+    with closing(connect()) as conn:
+        row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+    return row[0] if row else None

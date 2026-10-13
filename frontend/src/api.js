@@ -29,4 +29,5 @@ export const api = {
   setPathWork: (pathId, body) => request(`/paths/${id(pathId)}/works`, json('POST', body)),
   undo: () => request('/undo', { method: 'POST' }),
   history: () => request('/history'),
+  dismissRecommendation: bookId => request(`/recommendations/${id(bookId)}/dismiss`, { method: 'POST' }),
 }

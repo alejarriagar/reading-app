@@ -126,3 +126,25 @@ def test_ubicacion_geografica_y_temporal():
     assert century_of({"birth": 1871}) == 20
     assert century_of({"birth": -384}) < 0
     assert century_of({"period": "Siglos XVI-XVII"}) == 16
+
+def test_recomendaciones_explican_y_respetan_descartes(env):
+    new_id = Atlas().add_book("Libro Tres", "Autora Uno", "", "", [], ["r1"], "DISCOVERED")
+    Atlas().update_book("b1", "READ", 2025, 9.0, False, "")
+
+    recs = Atlas().snapshot()["recommendations"]
+    ids = [r["bookId"] for r in recs]
+    assert new_id in ids
+    assert "b1" not in ids
+    first = next(r for r in recs if r["bookId"] == new_id)
+    assert any("Te encantó" in reason for reason in first["reasons"])
+
+    atlas = Atlas()
+    atlas.profile.setdefault("dismissed_recommendations", []).append(new_id)
+    atlas.save()
+    assert new_id not in [r["bookId"] for r in Atlas().snapshot()["recommendations"]]
+
+
+def test_no_recomienda_lo_que_estas_leyendo(env):
+    Atlas().update_book("b2", "READING", None, None, False, "")
+    recs = Atlas().snapshot()["recommendations"]
+    assert "b2" not in [r["bookId"] for r in recs]

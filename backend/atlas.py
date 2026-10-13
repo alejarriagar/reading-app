@@ -11,6 +11,7 @@ from pathlib import Path
 
 from backend import store
 from backend.geo import world_summary
+from backend.recommend import recommend
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_FILE = ROOT / "assets" / "catalog.json"
@@ -65,6 +66,8 @@ class Atlas:
         self.profile = store.load_profile(DEFAULT_PROFILE)
         self._before = copy.deepcopy(self.profile)
         self.label = "Cambio"
+        self.state_since = store.state_timestamps()
+        self.tracking_since = store.get_meta("created_at")
         self._index()
 
     # ------------------------------------------------------------------
@@ -126,6 +129,7 @@ class Atlas:
 
     def save(self):
         store.save_profile(self.profile, self._before, self.label)
+        self.state_since = store.state_timestamps()
         self._before = copy.deepcopy(self.profile)
         self._index()
 
@@ -242,6 +246,7 @@ class Atlas:
                 "reread": bool(b.get("reread")),
                 "notes": b.get("notes") or "",
                 "published": b.get("published"),
+                "stateSince": self.state_since.get(b["id"]),
                 "cover": self.cover_for(b["title"], self.authors.get(b["author"], {}).get("name", "")),
                 "regions": [r for r in b.get("regions", []) if r in self.regions],
             })
@@ -290,11 +295,13 @@ class Atlas:
                 "regionsTotal": len(regions),
                 "averageRating": sum(ratings) / len(ratings) if ratings else None,
                 "byYear": dict(by_year),
+                "trackingSince": self.tracking_since,
             },
             "regions": regions,
             "authors": authors,
             "books": books,
             "world": world_summary(self.authors, self.author_state, self.books_by_author),
+            "recommendations": recommend(self, regions),
             "paths": [
                 {"id": p["id"], "name": p["name"], "period": p.get("period", ""), "authors": self.path_status(p)}
                 for p in self.paths
