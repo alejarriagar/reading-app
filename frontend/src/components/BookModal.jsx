@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { MapPin, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import Cover from './Cover'
 import { Button, Field, Modal, Segmented, STATE_META, STATE_ORDER, cx, inputClass } from './ui'
@@ -37,7 +37,7 @@ function DateInput({ value, onChange, disabled }) {
   )
 }
 
-export default function BookModal({ book, run, onClose }) {
+export default function BookModal({ book, run, onClose, shelf }) {
   const [state, setState] = useState(book.state)
   const [rating, setRating] = useState(book.rating ?? '')
   const [notes, setNotes] = useState(book.notes || '')
@@ -128,6 +128,11 @@ export default function BookModal({ book, run, onClose }) {
           {book.published ? <div>Publicada en {book.published}</div> : null}
           <div>{book.authorName}</div>
           {book.readCount > 0 && <div>{book.readCount === 1 ? 'Leída una vez' : `Leída ${book.readCount} veces`}</div>}
+          {(shelf || []).map(c => (
+            <div key={c.id} className="mt-1 inline-flex items-center gap-1.5 text-sky-300">
+              <MapPin size={12} />En {c.houseName}{c.ownerName ? ` · de ${c.ownerName}` : ''}{c.loanTo ? ` · prestado a ${c.loanTo}` : ''}
+            </div>
+          ))}
         </div>
       </div>
 

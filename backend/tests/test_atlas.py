@@ -3,7 +3,7 @@ import json
 import pytest
 
 from backend import atlas as atlas_module
-from backend import store
+from backend import accounts, store
 from backend.atlas import DEFAULT_PROFILE, Atlas
 from backend.geo import century_of, country_of
 
@@ -36,6 +36,10 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "DB_FILE", tmp_path / "atlas.db")
     monkeypatch.setattr(store, "LEGACY_FILE", tmp_path / "reading_progress.json")
     monkeypatch.setattr(store, "BACKUP_DIR", tmp_path / "backups")
+    monkeypatch.setattr(accounts, "ACCOUNTS_FILE", tmp_path / "accounts.db")
+    monkeypatch.setattr(accounts, "OWNER_DIR", tmp_path)
+    monkeypatch.setattr(accounts, "PROFILES_DIR", tmp_path / "profiles")
+    monkeypatch.setattr(accounts, "_FAILURES", {})
     return tmp_path
 
 
@@ -246,8 +250,7 @@ def test_caminos_propios(env):
 
     custom_paths.delete(Atlas(), path_id)
     assert path_id not in [p["id"] for p in Atlas().snapshot()["paths"]]
-    store.undo_last()
-    assert path_id in [p["id"] for p in Atlas().snapshot()["paths"]]
+    # Los caminos propios son compartidos entre perfiles y no pasan por «Deshacer».
 
 def test_tipo_de_obra(env):
     Atlas().update_book("b1", "READ", None, None, False, "", genre="ENSAYO")
@@ -277,3 +280,128 @@ def test_clasificacion_de_partida():
     assert seeds[_norm("Ética para Amador")] == "ENSAYO"
     assert seeds[_norm("Romancero gitano")] == "POESIA"
     assert seeds[_norm("Tokio blues (Norwegian Wood)")] == "NOVELA"
+
+
+
+def test_perfiles_y_pin(env):
+    owner = accounts.create_user("Alejandro", "secreto1", is_owner=True)
+    dad = accounts.create_user("Papá", "otra-clave")
+    assert accounts.verify(dad["id"], "otra-clave")
+    assert not accounts.verify(dad["id"], "mal")
+    with pytest.raises(ValueError):
+        accounts.create_user("papá", "123456")  # nombre repetido
+    with pytest.raises(ValueError):
+        accounts.create_user("Corto", "123")  # PIN demasiado corto
+    with pytest.raises(ValueError):
+        accounts.create_user("Otro", "123456", is_owner=True)  # solo un perfil principal
+    token = accounts.create_session(owner["id"])
+    assert accounts.session_user(token)["id"] == owner["id"]
+    accounts.delete_session(token)
+    assert accounts.session_user(token) is None
+    accounts.change_pin(dad["id"], "otra-clave", "nueva-clave")
+    assert accounts.verify(dad["id"], "nueva-clave")
+
+
+def test_bloqueo_tras_intentos_fallidos(env):
+    user = accounts.create_user("Alguien", "clave123")
+    for _ in range(accounts.MAX_FAILURES):
+        accounts.verify(user["id"], "mal")
+    with pytest.raises(accounts.TooManyAttempts):
+        accounts.verify(user["id"], "clave123")
+
+
+def test_datos_separados_por_perfil(env, monkeypatch):
+    owner = accounts.create_user("Yo", "clave123", is_owner=True)
+    dad = accounts.create_user("Papá", "clave456")
+
+    def use(user):
+        db, backups, legacy = accounts.user_files(user)
+        monkeypatch.setattr(store, "DB_FILE", db)
+        monkeypatch.setattr(store, "BACKUP_DIR", backups)
+        monkeypatch.setattr(store, "LEGACY_FILE", legacy)
+
+    use(dad)
+    Atlas().update_book("b1", "READ", None, 9.0, False, "")
+    use(owner)
+    assert Atlas().books_by_id["b1"]["state"] == "LOCKED"
+    use(dad)
+    assert Atlas().books_by_id["b1"]["state"] == "READ"
+
+
+def test_caminos_compartidos_entre_perfiles(env):
+    from backend import custom_paths
+    me = accounts.create_user("Yo", "clave123", is_owner=True)
+    dad = accounts.create_user("Papá", "clave456")
+
+    mine = Atlas()
+    mine.user_id = me["id"]
+    path_id = custom_paths.create(mine, {"name": "Ruta compartida", "authors": [
+        {"name": "Autor Dos", "works": [{"title": "Libro Dos"}]},
+    ]})
+
+    his = Atlas()
+    his.user_id = dad["id"]
+    shared = next(p for p in his.snapshot()["paths"] if p["id"] == path_id)
+    assert shared["mine"] is False
+    assert shared["ownerName"] == "Yo"
+    with pytest.raises(PermissionError):
+        custom_paths.delete(his, path_id)
+    copy_id = custom_paths.duplicate(his, path_id)
+    assert next(p for p in his.snapshot()["paths"] if p["id"] == copy_id)["mine"] is True
+
+
+
+def test_estanterias(env):
+    from backend import library
+    me = accounts.create_user("Yo", "clave123", is_owner=True)
+    houses = library.list_houses()
+    assert [h["name"] for h in houses] == ["Pozuelo", "Boadilla"]
+
+    copy_id = library.add_copy({
+        "title": "Libro Uno", "author": "Autora Uno", "isbn": "978-84-376-0494-7",
+        "house_id": houses[0]["id"], "owner_id": me["id"], "format": "POCKET",
+    }, me["id"])
+    copy = next(c for c in library.list_copies() if c["id"] == copy_id)
+    assert copy["isbn"] == "9788437604947"
+
+    atlas = Atlas()
+    assert library.match_books(library.list_copies(), atlas)[copy_id] == "b1"
+    shelf = atlas.snapshot()["shelf"]
+    assert shelf["byBook"]["b1"][0]["houseName"] == "Pozuelo"
+
+    with pytest.raises(ValueError):
+        library.add_copy({"title": "", "house_id": houses[0]["id"]}, me["id"])
+    with pytest.raises(ValueError):
+        library.add_copy({"title": "X", "isbn": "123", "house_id": houses[0]["id"]}, me["id"])
+
+    library.update_copy(copy_id, {"title": "Libro Uno", "author": "Autora Uno",
+                                  "house_id": houses[0]["id"], "move_to": houses[1]["id"]})
+    library.arrived(copy_id)
+    assert next(c for c in library.list_copies() if c["id"] == copy_id)["houseId"] == houses[1]["id"]
+    with pytest.raises(ValueError):
+        library.delete_house(houses[1]["id"])  # tiene libros
+
+
+def test_importar_csv(env):
+    from backend import library
+    accounts.create_user("Yo", "clave123", is_owner=True)
+    dad = accounts.create_user("Papá", "clave456")
+    text = ("Título;Autor;ISBN;Casa;Propietario;Formato\n"
+            "Libro Uno;Autora Uno;9788437604947;Boadilla;Papá;bolsillo\n"
+            "Libro Dos;Autor Dos;;Casa de verano;;tapa dura\n"
+            ";;;;;\n")
+    parsed = library.parse_csv(text)
+    assert parsed["columns"]["title"] == "Título"
+    assert len(parsed["rows"]) == 2
+
+    default = library.list_houses()[0]["id"]
+    result = library.import_rows(parsed["rows"], default, None, True, None)
+    assert result["created"] == 2
+    copies = {c["title"]: c for c in library.list_copies()}
+    assert copies["Libro Uno"]["ownerId"] == dad["id"]
+    assert copies["Libro Dos"]["format"] == "HARDCOVER"
+    assert "Casa de verano" in [h["name"] for h in library.list_houses()]
+
+    again = library.import_rows(parsed["rows"], default, None, True, None)
+    assert again["created"] == 0
+    assert again["skipped"] == 2

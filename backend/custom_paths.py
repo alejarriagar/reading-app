@@ -1,6 +1,7 @@
-"""Caminos creados o personalizados por el usuario (se guardan con el resto de sus datos)."""
-import copy
+"""Caminos creados o personalizados por los usuarios. Se comparten entre perfiles."""
 import uuid
+
+from backend import accounts
 
 TIERS = ("ESSENTIAL", "RECOMMENDED", "SPECIALIZED")
 MAX_AUTHORS = 40
@@ -67,36 +68,34 @@ def clean(payload, regions):
     return {"name": name, "description": description, "region_ids": region_ids, "period": "", "authors": authors}
 
 
+def _me(atlas):
+    return getattr(atlas, "user_id", None)
+
+
 def expand(atlas):
-    return [{**copy.deepcopy(p), "custom": True} for p in atlas.profile.get("custom_paths", [])]
+    me = _me(atlas)
+    return [{**p, "custom": True, "mine": p.get("ownerId") in (None, me)} for p in accounts.list_shared()]
 
 
 def create(atlas, payload):
     path = clean(payload, atlas.regions)
     path["id"] = f"mine-{uuid.uuid4().hex[:10]}"
-    atlas.profile.setdefault("custom_paths", []).append(path)
-    atlas.save()
+    accounts.add_shared(path, _me(atlas))
+    atlas._all_paths = None
     return path["id"]
 
 
 def update(atlas, path_id, payload):
-    paths = atlas.profile.get("custom_paths", [])
-    index = next((i for i, p in enumerate(paths) if p["id"] == path_id), None)
-    if index is None:
-        raise KeyError(path_id)
     path = clean(payload, atlas.regions)
     path["id"] = path_id
-    paths[index] = path
-    atlas.save()
+    accounts.update_shared(path_id, path, _me(atlas))
+    atlas._all_paths = None
     return path_id
 
 
 def delete(atlas, path_id):
-    paths = atlas.profile.get("custom_paths", [])
-    if not any(p["id"] == path_id for p in paths):
-        raise KeyError(path_id)
-    atlas.profile["custom_paths"] = [p for p in paths if p["id"] != path_id]
-    atlas.save()
+    accounts.delete_shared(path_id, _me(atlas))
+    atlas._all_paths = None
 
 
 def duplicate(atlas, path_id):
@@ -109,3 +108,10 @@ def duplicate(atlas, path_id):
         "region_ids": source.get("region_ids", []),
         "authors": source["authors"],
     })
+
+
+def migrate_from_profile(atlas):
+    """Mueve los caminos propios antiguos (guardados en el perfil) al espacio compartido."""
+    for path in atlas.profile.get("custom_paths", []):
+        if path.get("id") and path.get("authors"):
+            accounts.add_shared(path, _me(atlas))

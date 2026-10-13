@@ -267,9 +267,9 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
           <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
             {path.name}
             {path.auto && <span className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] font-normal text-slate-400">Generado del catálogo</span>}
-            {path.custom && <span className="rounded-md border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 text-[10px] font-normal text-violet-200">Tu camino</span>}
+            {path.custom && <span className="rounded-md border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 text-[10px] font-normal text-violet-200">{path.mine ? 'Tu camino' : `Camino de ${path.ownerName || 'otro perfil'}`}</span>}
             <span className="ml-1 flex items-center gap-1">
-              {path.custom ? (
+              {path.custom && path.mine ? (
                 <>
                   <button type="button" onClick={() => setEditor({ mode: 'edit', pathId: path.id })} className={toolClass}><Pencil size={12} />Editar</button>
                   <button type="button" onClick={removePath} className={toolClass}><Trash2 size={12} />Eliminar</button>

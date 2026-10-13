@@ -19,7 +19,7 @@ def _plural(n, one, many):
     return one if n == 1 else many
 
 
-def recommend(atlas, regions, limit=12):
+def recommend(atlas, regions, limit=12, owned=None):
     authors = atlas.authors
     region_by_id = {r["id"]: r for r in regions}
     dismissed = set(atlas.profile.get("dismissed_recommendations", []))
@@ -126,6 +126,10 @@ def recommend(atlas, regions, limit=12):
         if book["state"] == "DISCOVERED":
             score += 0.5
             reasons.append("Ya la tenías marcada como descubierta")
+        home = (owned or {}).get(book["id"])
+        if home:
+            score += 1.2
+            reasons.append(f"Lo tenéis en casa ({home})")
         if author_id in reading_authors:
             score -= 1.5
 

@@ -15,6 +15,7 @@ from backend.recommend import recommend
 from backend.paths_auto import auto_paths
 from backend import custom_paths
 from backend import genres
+from backend import library
 from backend import readings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -301,6 +302,11 @@ class Atlas:
         read = [b for b in books if b["state"] == "READ"]
         ratings = [b["rating"] for b in read if b["rating"] is not None]
         by_year = readings.finished_by_year(self.profile, read)
+        shelf = library.shelf_for(self)
+        shelf_owned = {
+            book_id: " y ".join(sorted({c["houseName"] for c in items if c["houseName"]}))
+            for book_id, items in shelf["byBook"].items()
+        }
 
         return {
             "summary": {
@@ -318,10 +324,12 @@ class Atlas:
             "authors": authors,
             "books": books,
             "world": world_summary(self.authors, self.author_state, self.books_by_author),
-            "recommendations": recommend(self, regions),
+            "recommendations": recommend(self, regions, owned=shelf_owned),
+            "shelf": shelf,
             "paths": [
                 {"id": p["id"], "name": p["name"], "period": p.get("period", ""), "auto": bool(p.get("auto")),
                  "custom": bool(p.get("custom")), "description": p.get("description", ""),
+                 "mine": bool(p.get("mine")), "ownerName": p.get("ownerName"),
                  "regionIds": p.get("region_ids", []), "authors": self.path_status(p)}
                 for p in self.all_paths()
             ],

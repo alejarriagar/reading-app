@@ -3,6 +3,10 @@ async function request(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })
+  if (response.status === 401 && !path.startsWith('/auth')) {
+    window.location.reload()
+    throw new Error('La sesión ha caducado')
+  }
   if (!response.ok) {
     let detail = `Error ${response.status}`
     try {
@@ -35,4 +39,21 @@ export const api = {
   updatePath: (pathId, body) => request(`/paths/custom/${id(pathId)}`, json('PUT', body)),
   deletePath: pathId => request(`/paths/custom/${id(pathId)}`, { method: 'DELETE' }),
   duplicatePath: pathId => request(`/paths/${id(pathId)}/duplicate`, { method: 'POST' }),
+  authStatus: () => request('/auth/status'),
+  setup: body => request('/auth/setup', json('POST', body)),
+  login: body => request('/auth/login', json('POST', body)),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  changePin: body => request('/auth/pin', json('POST', body)),
+  createUser: body => request('/auth/users', json('POST', body)),
+  library: () => request('/library'),
+  addCopy: body => request('/library/copies', json('POST', body)),
+  updateCopy: (copyId, body) => request(`/library/copies/${id(copyId)}`, json('PUT', body)),
+  deleteCopy: copyId => request(`/library/copies/${id(copyId)}`, { method: 'DELETE' }),
+  arrived: copyId => request(`/library/copies/${id(copyId)}/arrived`, { method: 'POST' }),
+  addHouse: body => request('/library/houses', json('POST', body)),
+  renameHouse: (houseId, body) => request(`/library/houses/${id(houseId)}`, json('PUT', body)),
+  deleteHouse: houseId => request(`/library/houses/${id(houseId)}`, { method: 'DELETE' }),
+  isbn: value => request(`/isbn/${id(value)}`),
+  importPreview: body => request('/library/import/preview', json('POST', body)),
+  importRows: body => request('/library/import', json('POST', body)),
 }

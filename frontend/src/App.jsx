@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, BookMarked, Fingerprint, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route, Search } from 'lucide-react'
+import { AlertTriangle, BookCopy, BookMarked, Fingerprint, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route, Search } from 'lucide-react'
 import { api } from './api'
 import Overview from './pages/Overview'
 import WorldPage from './pages/WorldPage'
 import StatsPage from './pages/StatsPage'
+import ShelvesPage from './pages/ShelvesPage'
 import MapPage from './pages/MapPage'
 import PathsPage from './pages/PathsPage'
 import LibraryPage from './pages/LibraryPage'
 import AuthorDrawer from './components/AuthorDrawer'
 import BookModal from './components/BookModal'
 import CommandPalette from './components/CommandPalette'
+import ProfileMenu from './components/ProfileMenu'
 import { CompassModal, DiscoveryModal } from './components/DiscoveryModal'
 import { detectDiscovery } from './lib/discovery'
 import { useHashRoute } from './lib/router'
@@ -21,10 +23,11 @@ const NAV = [
   { id: 'map', label: 'Territorios', icon: MapIcon },
   { id: 'paths', label: 'Caminos', icon: Route },
   { id: 'library', label: 'Biblioteca', icon: Library },
+  { id: 'shelves', label: 'Estanterías', icon: BookCopy },
   { id: 'stats', label: 'ADN lector', icon: Fingerprint },
 ]
 
-const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage, stats: StatsPage }
+const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage, shelves: ShelvesPage, stats: StatsPage }
 
 const isTyping = target =>
   target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
@@ -206,6 +209,8 @@ export default function App() {
           </div>
         </div>
 
+        <ProfileMenu me={data.me} />
+
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
@@ -256,7 +261,7 @@ export default function App() {
       </main>
 
       {route.author && <AuthorDrawer authorId={route.author} {...ctx} onClose={closeAuthor} />}
-      {book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} />}
+      {book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} shelf={data.shelf?.byBook?.[book.id]} />}
       {discovery && <DiscoveryModal discovery={discovery} data={data} onClose={closeDiscovery} onAuthor={exploreAuthor} onRegion={exploreRegion} onUndo={undo} />}
       {compassAnchor && <CompassModal anchor={compassAnchor} data={data} onClose={closeCompass} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
       <CommandPalette open={paletteOpen} data={data} onClose={closePalette} onSelect={handleCommand} />

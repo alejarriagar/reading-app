@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, Compass, CornerDownLeft, Fingerprint, Globe, LayoutDashboard, Library, Map as MapIcon, Plus, Route, Search, User } from 'lucide-react'
+import { BookCopy, BookOpen, Compass, CornerDownLeft, Fingerprint, Globe, LayoutDashboard, Library, Map as MapIcon, Plus, Route, Search, User } from 'lucide-react'
 import { StateBadge, cx } from './ui'
 
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -10,6 +10,7 @@ const PAGE_ENTRIES = [
   { id: 'map', title: 'Territorios', icon: MapIcon },
   { id: 'paths', title: 'Caminos', icon: Route },
   { id: 'library', title: 'Biblioteca', icon: Library },
+  { id: 'shelves', title: 'Estanterías', icon: BookCopy, keywords: 'estanterias libros casa pozuelo boadilla ejemplares prestamos isbn' },
   { id: 'stats', title: 'ADN lector', icon: Fingerprint, keywords: 'adn lector estadisticas resumen anual tu año en libros' },
 ]
 

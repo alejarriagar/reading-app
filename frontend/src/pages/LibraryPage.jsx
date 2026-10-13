@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, Lock, Plus, RotateCcw, Search } from 'lucide-react'
+import { ArrowDown, ArrowUp, Lock, MapPin, Plus, RotateCcw, Search } from 'lucide-react'
 import { api } from '../api'
 import Cover from '../components/Cover'
 import { GENRE_META, GENRES } from '../lib/genres'
@@ -202,6 +202,7 @@ export default function LibraryPage({ data, run, editBook, openAuthor, routeSub,
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 font-medium text-slate-100">
                           {book.state === 'LOCKED' && <Lock size={12} className="text-slate-500" />}{book.title}
+                          {data.shelf?.byBook?.[book.id] && <MapPin size={11} className="text-sky-400" aria-label="Lo tenéis en casa" />}
                         </div>
                         <button type="button" onClick={e => { e.stopPropagation(); openAuthor(book.author) }} className="mt-0.5 text-xs text-slate-500 hover:text-sky-300">{book.authorName}</button>
                         {book.genre && <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-600">{GENRE_META[book.genre].short}</span>}
