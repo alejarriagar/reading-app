@@ -12,6 +12,7 @@ from pathlib import Path
 from backend import store
 from backend.geo import world_summary
 from backend.recommend import recommend
+from backend.paths_auto import auto_paths
 from backend import readings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +79,7 @@ class Atlas:
     # ------------------------------------------------------------------
     def _index(self):
         profile = self.profile
+        self._all_paths = None
 
         regions = copy.deepcopy(self.catalog["regions"])
         for region in profile["custom_regions"]:
@@ -139,6 +141,11 @@ class Atlas:
         self._index()
 
     # ------------------------------------------------------------------
+    def all_paths(self):
+        if getattr(self, "_all_paths", None) is None:
+            self._all_paths = self.paths + auto_paths(self)
+        return self._all_paths
+
     def cover_for(self, title, author_name):
         return self.covers.get(f"{norm(title)}|{norm(author_name)}") or None
 
@@ -308,8 +315,9 @@ class Atlas:
             "world": world_summary(self.authors, self.author_state, self.books_by_author),
             "recommendations": recommend(self, regions),
             "paths": [
-                {"id": p["id"], "name": p["name"], "period": p.get("period", ""), "authors": self.path_status(p)}
-                for p in self.paths
+                {"id": p["id"], "name": p["name"], "period": p.get("period", ""), "auto": bool(p.get("auto")),
+                 "authors": self.path_status(p)}
+                for p in self.all_paths()
             ],
         }
 
@@ -432,7 +440,7 @@ class Atlas:
     def set_path_work(self, path_id, author_id, work_index, state):
         if state not in BOOK_STATES:
             raise ValueError("Estado no válido.")
-        path = next((p for p in self.paths if p["id"] == path_id), None)
+        path = next((p for p in self.all_paths() if p["id"] == path_id), None)
         if path is None:
             raise KeyError(path_id)
         author = next((a for a in self.path_status(path) if a["id"] == author_id), None)

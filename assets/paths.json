@@ -825,6 +825,2737 @@
           ]
         }
       ]
+    },
+    {
+      "id": "fr_xix",
+      "name": "🇫🇷 Francia · Siglo XIX",
+      "period": "Siglo XIX",
+      "region_ids": [
+        "fr_xix",
+        "period_xix",
+        "realism"
+      ],
+      "authors": [
+        {
+          "id": "flaubert",
+          "name": "Gustave Flaubert",
+          "short": "Flaubert",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Madame Bovary",
+              "year": 1857,
+              "aliases": []
+            },
+            {
+              "title": "Un corazón sencillo",
+              "year": 1877,
+              "aliases": []
+            },
+            {
+              "title": "La educación sentimental",
+              "year": 1869,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "hugo",
+          "name": "Victor Hugo",
+          "short": "Hugo",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [
+            "Víctor Hugo"
+          ],
+          "works": [
+            {
+              "title": "Nuestra Señora de París",
+              "year": 1831,
+              "aliases": []
+            },
+            {
+              "title": "Los miserables",
+              "year": 1862,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "balzac",
+          "name": "Honoré de Balzac",
+          "short": "Balzac",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Papá Goriot",
+              "year": 1835,
+              "aliases": [
+                "Papa Goriot"
+              ]
+            },
+            {
+              "title": "Eugénie Grandet",
+              "year": 1833,
+              "aliases": []
+            },
+            {
+              "title": "Las ilusiones perdidas",
+              "year": 1843,
+              "aliases": [
+                "Ilusiones perdidas"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stendhal",
+          "name": "Stendhal",
+          "short": "Stendhal",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Rojo y negro",
+              "year": 1830,
+              "aliases": []
+            },
+            {
+              "title": "La cartuja de Parma",
+              "year": 1839,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "zola",
+          "name": "Émile Zola",
+          "short": "Zola",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [
+            "Emile Zola"
+          ],
+          "works": [
+            {
+              "title": "Thérèse Raquin",
+              "year": 1867,
+              "aliases": []
+            },
+            {
+              "title": "Germinal",
+              "year": 1885,
+              "aliases": []
+            },
+            {
+              "title": "La taberna",
+              "year": 1877,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "baudelaire",
+          "name": "Charles Baudelaire",
+          "short": "Baudelaire",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Las flores del mal",
+              "year": 1857,
+              "aliases": []
+            },
+            {
+              "title": "El spleen de París",
+              "year": 1869,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "maupassant",
+          "name": "Guy de Maupassant",
+          "short": "Maupassant",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Bola de sebo",
+              "year": 1880,
+              "aliases": []
+            },
+            {
+              "title": "Bel-Ami",
+              "year": 1885,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "dumas",
+          "name": "Alejandro Dumas",
+          "short": "Dumas",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [
+            "Alexandre Dumas"
+          ],
+          "works": [
+            {
+              "title": "Los tres mosqueteros",
+              "year": 1844,
+              "aliases": []
+            },
+            {
+              "title": "El conde de Montecristo",
+              "year": 1844,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "verne",
+          "name": "Julio Verne",
+          "short": "Verne",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [
+            "Jules Verne"
+          ],
+          "works": [
+            {
+              "title": "La vuelta al mundo en ochenta días",
+              "year": 1872,
+              "aliases": []
+            },
+            {
+              "title": "Veinte mil leguas de viaje submarino",
+              "year": 1870,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "rimbaud",
+          "name": "Arthur Rimbaud",
+          "short": "Rimbaud",
+          "tier": "SPECIALIZED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Una temporada en el infierno",
+              "year": 1873,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fr_xx",
+      "name": "🇫🇷 Francia · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "fr_xx"
+      ],
+      "authors": [
+        {
+          "id": "proust",
+          "name": "Marcel Proust",
+          "short": "Proust",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Por el camino de Swann",
+              "year": 1913,
+              "aliases": [
+                "Por la parte de Swann"
+              ]
+            },
+            {
+              "title": "A la sombra de las muchachas en flor",
+              "year": 1919,
+              "aliases": []
+            },
+            {
+              "title": "El tiempo recobrado",
+              "year": 1927,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "camus",
+          "name": "Albert Camus",
+          "short": "Camus",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El extranjero",
+              "year": 1942,
+              "aliases": []
+            },
+            {
+              "title": "La peste",
+              "year": 1947,
+              "aliases": []
+            },
+            {
+              "title": "El mito de Sísifo",
+              "year": 1942,
+              "aliases": []
+            },
+            {
+              "title": "La caída",
+              "year": 1956,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "sartre",
+          "name": "Jean-Paul Sartre",
+          "short": "Sartre",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La náusea",
+              "year": 1938,
+              "aliases": []
+            },
+            {
+              "title": "A puerta cerrada",
+              "year": 1944,
+              "aliases": []
+            },
+            {
+              "title": "Las palabras",
+              "year": 1964,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "beauvoir",
+          "name": "Simone de Beauvoir",
+          "short": "Beauvoir",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Memorias de una joven formal",
+              "year": 1958,
+              "aliases": []
+            },
+            {
+              "title": "El segundo sexo",
+              "year": 1949,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "yourcenar",
+          "name": "Marguerite Yourcenar",
+          "short": "Yourcenar",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Memorias de Adriano",
+              "year": 1951,
+              "aliases": []
+            },
+            {
+              "title": "Opus nigrum",
+              "year": 1968,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "celine",
+          "name": "Louis-Ferdinand Céline",
+          "short": "Céline",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Viaje al fin de la noche",
+              "year": 1932,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "gide",
+          "name": "André Gide",
+          "short": "Gide",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El inmoralista",
+              "year": 1902,
+              "aliases": []
+            },
+            {
+              "title": "Los monederos falsos",
+              "year": 1925,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "saint_exupery",
+          "name": "Antoine de Saint-Exupéry",
+          "short": "Saint-Exupéry",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El principito",
+              "year": 1943,
+              "aliases": []
+            },
+            {
+              "title": "Vuelo nocturno",
+              "year": 1931,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "duras",
+          "name": "Marguerite Duras",
+          "short": "Duras",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El amante",
+              "year": 1984,
+              "aliases": []
+            },
+            {
+              "title": "Moderato cantabile",
+              "year": 1958,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "perec",
+          "name": "Georges Perec",
+          "short": "Perec",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Las cosas",
+              "year": 1965,
+              "aliases": []
+            },
+            {
+              "title": "La vida instrucciones de uso",
+              "year": 1978,
+              "aliases": [
+                "La vida, instrucciones de uso"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "houellebecq",
+          "name": "Michel Houellebecq",
+          "short": "Houellebecq",
+          "tier": "SPECIALIZED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Las partículas elementales",
+              "year": 1998,
+              "aliases": []
+            },
+            {
+              "title": "Sumisión",
+              "year": 2015,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "ernaux",
+          "name": "Annie Ernaux",
+          "short": "Ernaux",
+          "tier": "SPECIALIZED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El lugar",
+              "year": 1983,
+              "aliases": []
+            },
+            {
+              "title": "Los años",
+              "year": 2008,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "uk_xix",
+      "name": "🇬🇧 Reino Unido · Siglo XIX",
+      "period": "Siglo XIX",
+      "region_ids": [
+        "uk_xix",
+        "period_xix"
+      ],
+      "authors": [
+        {
+          "id": "dickens",
+          "name": "Charles Dickens",
+          "short": "Dickens",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Oliver Twist",
+              "year": 1838,
+              "aliases": []
+            },
+            {
+              "title": "David Copperfield",
+              "year": 1850,
+              "aliases": []
+            },
+            {
+              "title": "Grandes esperanzas",
+              "year": 1861,
+              "aliases": []
+            },
+            {
+              "title": "Historia de dos ciudades",
+              "year": 1859,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "austen",
+          "name": "Jane Austen",
+          "short": "Austen",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Orgullo y prejuicio",
+              "year": 1813,
+              "aliases": []
+            },
+            {
+              "title": "Emma",
+              "year": 1815,
+              "aliases": []
+            },
+            {
+              "title": "Persuasión",
+              "year": 1817,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "george_eliot",
+          "name": "George Eliot",
+          "short": "G. Eliot",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El molino del Floss",
+              "year": 1860,
+              "aliases": []
+            },
+            {
+              "title": "Middlemarch",
+              "year": 1871,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "emily_bronte",
+          "name": "Emily Brontë",
+          "short": "E. Brontë",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [
+            "Emily Bronte"
+          ],
+          "works": [
+            {
+              "title": "Cumbres borrascosas",
+              "year": 1847,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "charlotte_bronte",
+          "name": "Charlotte Brontë",
+          "short": "C. Brontë",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [
+            "Charlotte Bronte"
+          ],
+          "works": [
+            {
+              "title": "Jane Eyre",
+              "year": 1847,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "hardy",
+          "name": "Thomas Hardy",
+          "short": "Hardy",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Lejos del mundanal ruido",
+              "year": 1874,
+              "aliases": []
+            },
+            {
+              "title": "Tess de los d'Urberville",
+              "year": 1891,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "mary_shelley",
+          "name": "Mary Shelley",
+          "short": "Shelley",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Frankenstein",
+              "year": 1818,
+              "aliases": [
+                "Frankenstein o el moderno Prometeo"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "wilde",
+          "name": "Oscar Wilde",
+          "short": "Wilde",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El retrato de Dorian Gray",
+              "year": 1890,
+              "aliases": []
+            },
+            {
+              "title": "La importancia de llamarse Ernesto",
+              "year": 1895,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "stevenson",
+          "name": "Robert Louis Stevenson",
+          "short": "Stevenson",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La isla del tesoro",
+              "year": 1883,
+              "aliases": []
+            },
+            {
+              "title": "El extraño caso del doctor Jekyll y míster Hyde",
+              "year": 1886,
+              "aliases": [
+                "El extraño caso del Dr. Jekyll y Mr. Hyde"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "carroll",
+          "name": "Lewis Carroll",
+          "short": "Carroll",
+          "tier": "SPECIALIZED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Alicia en el país de las maravillas",
+              "year": 1865,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "conan_doyle",
+          "name": "Arthur Conan Doyle",
+          "short": "Conan Doyle",
+          "tier": "SPECIALIZED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Estudio en escarlata",
+              "year": 1887,
+              "aliases": []
+            },
+            {
+              "title": "El sabueso de los Baskerville",
+              "year": 1902,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "uk_xx",
+      "name": "🇬🇧 Reino Unido e Irlanda · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "uk_xx",
+        "modernism"
+      ],
+      "authors": [
+        {
+          "id": "woolf",
+          "name": "Virginia Woolf",
+          "short": "Woolf",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La señora Dalloway",
+              "year": 1925,
+              "aliases": []
+            },
+            {
+              "title": "Al faro",
+              "year": 1927,
+              "aliases": []
+            },
+            {
+              "title": "Una habitación propia",
+              "year": 1929,
+              "aliases": []
+            },
+            {
+              "title": "Orlando",
+              "year": 1928,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "joyce",
+          "name": "James Joyce",
+          "short": "Joyce",
+          "tier": "ESSENTIAL",
+          "country": "Irlanda",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Dublineses",
+              "year": 1914,
+              "aliases": []
+            },
+            {
+              "title": "Retrato del artista adolescente",
+              "year": 1916,
+              "aliases": []
+            },
+            {
+              "title": "Ulises",
+              "year": 1922,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "orwell",
+          "name": "George Orwell",
+          "short": "Orwell",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Rebelión en la granja",
+              "year": 1945,
+              "aliases": []
+            },
+            {
+              "title": "1984",
+              "year": 1949,
+              "aliases": []
+            },
+            {
+              "title": "Homenaje a Cataluña",
+              "year": 1938,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "conrad",
+          "name": "Joseph Conrad",
+          "short": "Conrad",
+          "tier": "ESSENTIAL",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El corazón de las tinieblas",
+              "year": 1899,
+              "aliases": []
+            },
+            {
+              "title": "Lord Jim",
+              "year": 1900,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "huxley",
+          "name": "Aldous Huxley",
+          "short": "Huxley",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Un mundo feliz",
+              "year": 1932,
+              "aliases": []
+            },
+            {
+              "title": "Contrapunto",
+              "year": 1928,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "forster",
+          "name": "E. M. Forster",
+          "short": "Forster",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [
+            "E.M. Forster"
+          ],
+          "works": [
+            {
+              "title": "Una habitación con vistas",
+              "year": 1908,
+              "aliases": []
+            },
+            {
+              "title": "Pasaje a la India",
+              "year": 1924,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "beckett",
+          "name": "Samuel Beckett",
+          "short": "Beckett",
+          "tier": "RECOMMENDED",
+          "country": "Irlanda",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Esperando a Godot",
+              "year": 1952,
+              "aliases": []
+            },
+            {
+              "title": "Molloy",
+              "year": 1951,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "lawrence",
+          "name": "D. H. Lawrence",
+          "short": "Lawrence",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [
+            "D.H. Lawrence"
+          ],
+          "works": [
+            {
+              "title": "Hijos y amantes",
+              "year": 1913,
+              "aliases": []
+            },
+            {
+              "title": "El amante de Lady Chatterley",
+              "year": 1928,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "ishiguro",
+          "name": "Kazuo Ishiguro",
+          "short": "Ishiguro",
+          "tier": "RECOMMENDED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Lo que queda del día",
+              "year": 1989,
+              "aliases": []
+            },
+            {
+              "title": "Nunca me abandones",
+              "year": 2005,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "greene",
+          "name": "Graham Greene",
+          "short": "Greene",
+          "tier": "SPECIALIZED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El poder y la gloria",
+              "year": 1940,
+              "aliases": []
+            },
+            {
+              "title": "El tercer hombre",
+              "year": 1950,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "waugh",
+          "name": "Evelyn Waugh",
+          "short": "Waugh",
+          "tier": "SPECIALIZED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Retorno a Brideshead",
+              "year": 1945,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "christie",
+          "name": "Agatha Christie",
+          "short": "Christie",
+          "tier": "SPECIALIZED",
+          "country": "Reino Unido",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Asesinato en el Orient Express",
+              "year": 1934,
+              "aliases": []
+            },
+            {
+              "title": "Muerte en el Nilo",
+              "year": 1937,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ru_xx",
+      "name": "🇷🇺 Rusia · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "ru_xx"
+      ],
+      "authors": [
+        {
+          "id": "bulgakov",
+          "name": "Mijaíl Bulgákov",
+          "short": "Bulgákov",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El maestro y Margarita",
+              "year": 1967,
+              "aliases": []
+            },
+            {
+              "title": "Corazón de perro",
+              "year": 1925,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "pasternak",
+          "name": "Borís Pasternak",
+          "short": "Pasternak",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [
+            "Boris Pasternak"
+          ],
+          "works": [
+            {
+              "title": "Doctor Zhivago",
+              "year": 1957,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "solzhenitsyn",
+          "name": "Aleksandr Solzhenitsyn",
+          "short": "Solzhenitsyn",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [
+            "Alexandr Solzhenitsyn",
+            "Aleksandr Solzhenitsin"
+          ],
+          "works": [
+            {
+              "title": "Un día en la vida de Iván Denísovich",
+              "year": 1962,
+              "aliases": []
+            },
+            {
+              "title": "Archipiélago Gulag",
+              "year": 1973,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "grossman",
+          "name": "Vasili Grossman",
+          "short": "Grossman",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [
+            "Vasily Grossman"
+          ],
+          "works": [
+            {
+              "title": "Vida y destino",
+              "year": 1980,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "nabokov_ru",
+          "name": "Vladimir Nabokov",
+          "short": "Nabokov",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La defensa",
+              "year": 1930,
+              "aliases": []
+            },
+            {
+              "title": "Habla, memoria",
+              "year": 1951,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "ajmatova",
+          "name": "Anna Ajmátova",
+          "short": "Ajmátova",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [
+            "Anna Ajmatova",
+            "Anna Akhmatova"
+          ],
+          "works": [
+            {
+              "title": "Réquiem",
+              "year": 1963,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "zamiatin",
+          "name": "Yevgueni Zamiatin",
+          "short": "Zamiatin",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [
+            "Yevgeni Zamiatin",
+            "Evgueni Zamiatin"
+          ],
+          "works": [
+            {
+              "title": "Nosotros",
+              "year": 1924,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "babel",
+          "name": "Isaak Bábel",
+          "short": "Bábel",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [
+            "Isaac Bábel",
+            "Isaak Babel"
+          ],
+          "works": [
+            {
+              "title": "Caballería roja",
+              "year": 1926,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "gorki",
+          "name": "Máximo Gorki",
+          "short": "Gorki",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [
+            "Maksim Gorki"
+          ],
+          "works": [
+            {
+              "title": "La madre",
+              "year": 1906,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "shalamov",
+          "name": "Varlam Shalámov",
+          "short": "Shalámov",
+          "tier": "RECOMMENDED",
+          "country": "Rusia",
+          "aliases": [
+            "Varlam Shalamov"
+          ],
+          "works": [
+            {
+              "title": "Relatos de Kolimá",
+              "year": 1978,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "platonov",
+          "name": "Andréi Platónov",
+          "short": "Platónov",
+          "tier": "SPECIALIZED",
+          "country": "Rusia",
+          "aliases": [
+            "Andrei Platonov"
+          ],
+          "works": [
+            {
+              "title": "El foso",
+              "year": 1930,
+              "aliases": [
+                "La excavación"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sholojov",
+          "name": "Mijaíl Shólojov",
+          "short": "Shólojov",
+          "tier": "SPECIALIZED",
+          "country": "Rusia",
+          "aliases": [
+            "Mikhail Sholokhov"
+          ],
+          "works": [
+            {
+              "title": "El Don apacible",
+              "year": 1928,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jp_xx",
+      "name": "🇯🇵 Japón · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "jp_xx"
+      ],
+      "authors": [
+        {
+          "id": "kawabata",
+          "name": "Yasunari Kawabata",
+          "short": "Kawabata",
+          "tier": "ESSENTIAL",
+          "country": "Japón",
+          "aliases": [],
+          "works": [
+            {
+              "title": "País de nieve",
+              "year": 1948,
+              "aliases": []
+            },
+            {
+              "title": "Mil grullas",
+              "year": 1952,
+              "aliases": []
+            },
+            {
+              "title": "La casa de las bellas durmientes",
+              "year": 1961,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "soseki",
+          "name": "Natsume Sōseki",
+          "short": "Sōseki",
+          "tier": "ESSENTIAL",
+          "country": "Japón",
+          "aliases": [
+            "Natsume Soseki",
+            "Soseki Natsume"
+          ],
+          "works": [
+            {
+              "title": "Botchan",
+              "year": 1906,
+              "aliases": []
+            },
+            {
+              "title": "Kokoro",
+              "year": 1914,
+              "aliases": []
+            },
+            {
+              "title": "Soy un gato",
+              "year": 1905,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "mishima",
+          "name": "Yukio Mishima",
+          "short": "Mishima",
+          "tier": "ESSENTIAL",
+          "country": "Japón",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El pabellón de oro",
+              "year": 1956,
+              "aliases": []
+            },
+            {
+              "title": "Confesiones de una máscara",
+              "year": 1949,
+              "aliases": []
+            },
+            {
+              "title": "Nieve de primavera",
+              "year": 1969,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "tanizaki",
+          "name": "Jun'ichirō Tanizaki",
+          "short": "Tanizaki",
+          "tier": "RECOMMENDED",
+          "country": "Japón",
+          "aliases": [
+            "Junichiro Tanizaki",
+            "Jun'ichiro Tanizaki"
+          ],
+          "works": [
+            {
+              "title": "El elogio de la sombra",
+              "year": 1933,
+              "aliases": []
+            },
+            {
+              "title": "Las hermanas Makioka",
+              "year": 1948,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "akutagawa",
+          "name": "Ryūnosuke Akutagawa",
+          "short": "Akutagawa",
+          "tier": "RECOMMENDED",
+          "country": "Japón",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Rashōmon",
+              "year": 1915,
+              "aliases": [
+                "Rashomon"
+              ]
+            },
+            {
+              "title": "En el bosque",
+              "year": 1922,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "oe",
+          "name": "Kenzaburō Ōe",
+          "short": "Ōe",
+          "tier": "RECOMMENDED",
+          "country": "Japón",
+          "aliases": [
+            "Kenzaburo Oe"
+          ],
+          "works": [
+            {
+              "title": "La presa",
+              "year": 1958,
+              "aliases": []
+            },
+            {
+              "title": "Una cuestión personal",
+              "year": 1964,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "abe",
+          "name": "Kōbō Abe",
+          "short": "Abe",
+          "tier": "RECOMMENDED",
+          "country": "Japón",
+          "aliases": [
+            "Kobo Abe"
+          ],
+          "works": [
+            {
+              "title": "La mujer de la arena",
+              "year": 1962,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "dazai",
+          "name": "Osamu Dazai",
+          "short": "Dazai",
+          "tier": "RECOMMENDED",
+          "country": "Japón",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El ocaso",
+              "year": 1947,
+              "aliases": []
+            },
+            {
+              "title": "Indigno de ser humano",
+              "year": 1948,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "murakami",
+          "name": "Haruki Murakami",
+          "short": "Murakami",
+          "tier": "RECOMMENDED",
+          "country": "Japón",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Tokio blues",
+              "year": 1987,
+              "aliases": [
+                "Tokio Blues",
+                "Norwegian Wood"
+              ]
+            },
+            {
+              "title": "Crónica del pájaro que da cuerda al mundo",
+              "year": 1994,
+              "aliases": []
+            },
+            {
+              "title": "Kafka en la orilla",
+              "year": 2002,
+              "aliases": []
+            },
+            {
+              "title": "Sputnik, mi amor",
+              "year": 1999,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "yoshimoto",
+          "name": "Banana Yoshimoto",
+          "short": "Yoshimoto",
+          "tier": "SPECIALIZED",
+          "country": "Japón",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Kitchen",
+              "year": 1988,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "ogawa",
+          "name": "Yoko Ogawa",
+          "short": "Ogawa",
+          "tier": "SPECIALIZED",
+          "country": "Japón",
+          "aliases": [
+            "Yōko Ogawa"
+          ],
+          "works": [
+            {
+              "title": "La fórmula preferida del profesor",
+              "year": 2003,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "latam_xx",
+      "name": "🌎 Latinoamérica · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "latin_american"
+      ],
+      "authors": [
+        {
+          "id": "garcia_marquez",
+          "name": "Gabriel García Márquez",
+          "short": "García Márquez",
+          "tier": "ESSENTIAL",
+          "country": "Colombia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El coronel no tiene quien le escriba",
+              "year": 1961,
+              "aliases": []
+            },
+            {
+              "title": "Crónica de una muerte anunciada",
+              "year": 1981,
+              "aliases": []
+            },
+            {
+              "title": "Cien años de soledad",
+              "year": 1967,
+              "aliases": []
+            },
+            {
+              "title": "El amor en los tiempos del cólera",
+              "year": 1985,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "borges",
+          "name": "Jorge Luis Borges",
+          "short": "Borges",
+          "tier": "ESSENTIAL",
+          "country": "Argentina",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Ficciones",
+              "year": 1944,
+              "aliases": []
+            },
+            {
+              "title": "El Aleph",
+              "year": 1949,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "cortazar",
+          "name": "Julio Cortázar",
+          "short": "Cortázar",
+          "tier": "ESSENTIAL",
+          "country": "Argentina",
+          "aliases": [
+            "Julio Cortazar"
+          ],
+          "works": [
+            {
+              "title": "Bestiario",
+              "year": 1951,
+              "aliases": []
+            },
+            {
+              "title": "Historias de cronopios y de famas",
+              "year": 1962,
+              "aliases": []
+            },
+            {
+              "title": "Rayuela",
+              "year": 1963,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "rulfo",
+          "name": "Juan Rulfo",
+          "short": "Rulfo",
+          "tier": "ESSENTIAL",
+          "country": "México",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Pedro Páramo",
+              "year": 1955,
+              "aliases": []
+            },
+            {
+              "title": "El llano en llamas",
+              "year": 1953,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "vargas_llosa",
+          "name": "Mario Vargas Llosa",
+          "short": "Vargas Llosa",
+          "tier": "ESSENTIAL",
+          "country": "Perú",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La ciudad y los perros",
+              "year": 1963,
+              "aliases": []
+            },
+            {
+              "title": "Conversación en La Catedral",
+              "year": 1969,
+              "aliases": []
+            },
+            {
+              "title": "La fiesta del Chivo",
+              "year": 2000,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "neruda",
+          "name": "Pablo Neruda",
+          "short": "Neruda",
+          "tier": "RECOMMENDED",
+          "country": "Chile",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Veinte poemas de amor y una canción desesperada",
+              "year": 1924,
+              "aliases": []
+            },
+            {
+              "title": "Canto general",
+              "year": 1950,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "octavio_paz",
+          "name": "Octavio Paz",
+          "short": "Paz",
+          "tier": "RECOMMENDED",
+          "country": "México",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El laberinto de la soledad",
+              "year": 1950,
+              "aliases": []
+            },
+            {
+              "title": "Piedra de sol",
+              "year": 1957,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "carpentier",
+          "name": "Alejo Carpentier",
+          "short": "Carpentier",
+          "tier": "RECOMMENDED",
+          "country": "Cuba",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El reino de este mundo",
+              "year": 1949,
+              "aliases": []
+            },
+            {
+              "title": "Los pasos perdidos",
+              "year": 1953,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "fuentes",
+          "name": "Carlos Fuentes",
+          "short": "Fuentes",
+          "tier": "RECOMMENDED",
+          "country": "México",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Aura",
+              "year": 1962,
+              "aliases": []
+            },
+            {
+              "title": "La muerte de Artemio Cruz",
+              "year": 1962,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "sabato",
+          "name": "Ernesto Sabato",
+          "short": "Sabato",
+          "tier": "RECOMMENDED",
+          "country": "Argentina",
+          "aliases": [
+            "Ernesto Sábato"
+          ],
+          "works": [
+            {
+              "title": "El túnel",
+              "year": 1948,
+              "aliases": []
+            },
+            {
+              "title": "Sobre héroes y tumbas",
+              "year": 1961,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "bolano",
+          "name": "Roberto Bolaño",
+          "short": "Bolaño",
+          "tier": "RECOMMENDED",
+          "country": "Chile",
+          "aliases": [
+            "Roberto Bolano"
+          ],
+          "works": [
+            {
+              "title": "Llamadas telefónicas",
+              "year": 1997,
+              "aliases": []
+            },
+            {
+              "title": "Los detectives salvajes",
+              "year": 1998,
+              "aliases": []
+            },
+            {
+              "title": "2666",
+              "year": 2004,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "onetti",
+          "name": "Juan Carlos Onetti",
+          "short": "Onetti",
+          "tier": "SPECIALIZED",
+          "country": "Uruguay",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El astillero",
+              "year": 1961,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "mistral",
+          "name": "Gabriela Mistral",
+          "short": "Mistral",
+          "tier": "SPECIALIZED",
+          "country": "Chile",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Desolación",
+              "year": 1922,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "allende",
+          "name": "Isabel Allende",
+          "short": "Allende",
+          "tier": "SPECIALIZED",
+          "country": "Chile",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La casa de los espíritus",
+              "year": 1982,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "de_xx",
+      "name": "🇩🇪 Lengua alemana · Siglo XX",
+      "period": "Siglo XX",
+      "region_ids": [
+        "german_literature"
+      ],
+      "authors": [
+        {
+          "id": "kafka",
+          "name": "Franz Kafka",
+          "short": "Kafka",
+          "tier": "ESSENTIAL",
+          "country": "Europa central",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La metamorfosis",
+              "year": 1915,
+              "aliases": []
+            },
+            {
+              "title": "El proceso",
+              "year": 1925,
+              "aliases": []
+            },
+            {
+              "title": "El castillo",
+              "year": 1926,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "thomas_mann",
+          "name": "Thomas Mann",
+          "short": "Mann",
+          "tier": "ESSENTIAL",
+          "country": "Alemania",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La muerte en Venecia",
+              "year": 1912,
+              "aliases": []
+            },
+            {
+              "title": "Los Buddenbrook",
+              "year": 1901,
+              "aliases": []
+            },
+            {
+              "title": "La montaña mágica",
+              "year": 1924,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "hesse",
+          "name": "Hermann Hesse",
+          "short": "Hesse",
+          "tier": "ESSENTIAL",
+          "country": "Alemania",
+          "aliases": [
+            "Herman Hesse"
+          ],
+          "works": [
+            {
+              "title": "Demian",
+              "year": 1919,
+              "aliases": []
+            },
+            {
+              "title": "Siddhartha",
+              "year": 1922,
+              "aliases": []
+            },
+            {
+              "title": "El lobo estepario",
+              "year": 1927,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "zweig",
+          "name": "Stefan Zweig",
+          "short": "Zweig",
+          "tier": "ESSENTIAL",
+          "country": "Austria",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Novela de ajedrez",
+              "year": 1942,
+              "aliases": []
+            },
+            {
+              "title": "Carta de una desconocida",
+              "year": 1922,
+              "aliases": []
+            },
+            {
+              "title": "El mundo de ayer",
+              "year": 1942,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "musil",
+          "name": "Robert Musil",
+          "short": "Musil",
+          "tier": "RECOMMENDED",
+          "country": "Austria",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Las tribulaciones del estudiante Törless",
+              "year": 1906,
+              "aliases": []
+            },
+            {
+              "title": "El hombre sin atributos",
+              "year": 1930,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "rilke",
+          "name": "Rainer Maria Rilke",
+          "short": "Rilke",
+          "tier": "RECOMMENDED",
+          "country": "Austria",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Cartas a un joven poeta",
+              "year": 1929,
+              "aliases": []
+            },
+            {
+              "title": "Elegías de Duino",
+              "year": 1923,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "brecht",
+          "name": "Bertolt Brecht",
+          "short": "Brecht",
+          "tier": "RECOMMENDED",
+          "country": "Alemania",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La ópera de cuatro cuartos",
+              "year": 1928,
+              "aliases": []
+            },
+            {
+              "title": "Madre Coraje y sus hijos",
+              "year": 1941,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "joseph_roth",
+          "name": "Joseph Roth",
+          "short": "J. Roth",
+          "tier": "RECOMMENDED",
+          "country": "Austria",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La marcha Radetzky",
+              "year": 1932,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "grass",
+          "name": "Günter Grass",
+          "short": "Grass",
+          "tier": "RECOMMENDED",
+          "country": "Alemania",
+          "aliases": [
+            "Gunter Grass"
+          ],
+          "works": [
+            {
+              "title": "El tambor de hojalata",
+              "year": 1959,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "remarque",
+          "name": "Erich Maria Remarque",
+          "short": "Remarque",
+          "tier": "SPECIALIZED",
+          "country": "Alemania",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Sin novedad en el frente",
+              "year": 1929,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "sebald",
+          "name": "W. G. Sebald",
+          "short": "Sebald",
+          "tier": "SPECIALIZED",
+          "country": "Alemania",
+          "aliases": [
+            "W.G. Sebald"
+          ],
+          "works": [
+            {
+              "title": "Los anillos de Saturno",
+              "year": 1995,
+              "aliases": []
+            },
+            {
+              "title": "Austerlitz",
+              "year": 2001,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "suskind",
+          "name": "Patrick Süskind",
+          "short": "Süskind",
+          "tier": "SPECIALIZED",
+          "country": "Alemania",
+          "aliases": [
+            "Patrick Suskind"
+          ],
+          "works": [
+            {
+              "title": "El perfume",
+              "year": 1985,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "existentialism",
+      "name": "🧠 Existencialismo",
+      "period": "Siglos XIX-XX",
+      "region_ids": [
+        "existentialism"
+      ],
+      "authors": [
+        {
+          "id": "kierkegaard",
+          "name": "Søren Kierkegaard",
+          "short": "Kierkegaard",
+          "tier": "ESSENTIAL",
+          "country": "Dinamarca",
+          "aliases": [
+            "Soren Kierkegaard"
+          ],
+          "works": [
+            {
+              "title": "Temor y temblor",
+              "year": 1843,
+              "aliases": []
+            },
+            {
+              "title": "La enfermedad mortal",
+              "year": 1849,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "dostoevsky",
+          "name": "Fiódor Dostoyevski",
+          "short": "Dostoyevski",
+          "tier": "ESSENTIAL",
+          "country": "Rusia",
+          "aliases": [
+            "Fiodor Dostoievsky",
+            "Fiódor Dostoievski",
+            "Dostoyevski"
+          ],
+          "works": [
+            {
+              "title": "Memorias del subsuelo",
+              "year": 1864,
+              "aliases": []
+            },
+            {
+              "title": "Crimen y castigo",
+              "year": 1866,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "nietzsche",
+          "name": "Friedrich Nietzsche",
+          "short": "Nietzsche",
+          "tier": "ESSENTIAL",
+          "country": "Alemania",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La gaya ciencia",
+              "year": 1882,
+              "aliases": []
+            },
+            {
+              "title": "Así habló Zaratustra",
+              "year": 1883,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "sartre",
+          "name": "Jean-Paul Sartre",
+          "short": "Sartre",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La náusea",
+              "year": 1938,
+              "aliases": []
+            },
+            {
+              "title": "El existencialismo es un humanismo",
+              "year": 1946,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "camus",
+          "name": "Albert Camus",
+          "short": "Camus",
+          "tier": "ESSENTIAL",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El extranjero",
+              "year": 1942,
+              "aliases": []
+            },
+            {
+              "title": "El mito de Sísifo",
+              "year": 1942,
+              "aliases": []
+            },
+            {
+              "title": "La peste",
+              "year": 1947,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "kafka",
+          "name": "Franz Kafka",
+          "short": "Kafka",
+          "tier": "RECOMMENDED",
+          "country": "Europa central",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La metamorfosis",
+              "year": 1915,
+              "aliases": []
+            },
+            {
+              "title": "El proceso",
+              "year": 1925,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "beauvoir",
+          "name": "Simone de Beauvoir",
+          "short": "Beauvoir",
+          "tier": "RECOMMENDED",
+          "country": "Francia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La invitada",
+              "year": 1943,
+              "aliases": []
+            },
+            {
+              "title": "Para una moral de la ambigüedad",
+              "year": 1947,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "unamuno",
+          "name": "Miguel de Unamuno",
+          "short": "Unamuno",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Niebla",
+              "year": 1914,
+              "aliases": []
+            },
+            {
+              "title": "Del sentimiento trágico de la vida",
+              "year": 1913,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "sabato",
+          "name": "Ernesto Sabato",
+          "short": "Sabato",
+          "tier": "RECOMMENDED",
+          "country": "Argentina",
+          "aliases": [
+            "Ernesto Sábato"
+          ],
+          "works": [
+            {
+              "title": "El túnel",
+              "year": 1948,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "beckett",
+          "name": "Samuel Beckett",
+          "short": "Beckett",
+          "tier": "SPECIALIZED",
+          "country": "Irlanda",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Esperando a Godot",
+              "year": 1952,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "classics",
+      "name": "🏛️ Antigüedad clásica",
+      "period": "Antigüedad",
+      "region_ids": [
+        "classical_thought"
+      ],
+      "authors": [
+        {
+          "id": "homero",
+          "name": "Homero",
+          "short": "Homero",
+          "tier": "ESSENTIAL",
+          "country": "Antigua Grecia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Odisea",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "Ilíada",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "sofocles",
+          "name": "Sófocles",
+          "short": "Sófocles",
+          "tier": "ESSENTIAL",
+          "country": "Antigua Grecia",
+          "aliases": [
+            "Sofocles"
+          ],
+          "works": [
+            {
+              "title": "Edipo rey",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "Antígona",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "platon",
+          "name": "Platón",
+          "short": "Platón",
+          "tier": "ESSENTIAL",
+          "country": "Antigua Grecia",
+          "aliases": [
+            "Platon"
+          ],
+          "works": [
+            {
+              "title": "Apología de Sócrates",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "El banquete",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "La república",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "aristoteles",
+          "name": "Aristóteles",
+          "short": "Aristóteles",
+          "tier": "ESSENTIAL",
+          "country": "Antigua Grecia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Ética a Nicómaco",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "Poética",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "Política",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "virgilio",
+          "name": "Virgilio",
+          "short": "Virgilio",
+          "tier": "ESSENTIAL",
+          "country": "Antigua Roma",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Eneida",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "esquilo",
+          "name": "Esquilo",
+          "short": "Esquilo",
+          "tier": "RECOMMENDED",
+          "country": "Antigua Grecia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La Orestíada",
+              "year": null,
+              "aliases": [
+                "Orestíada"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "euripides",
+          "name": "Eurípides",
+          "short": "Eurípides",
+          "tier": "RECOMMENDED",
+          "country": "Antigua Grecia",
+          "aliases": [
+            "Euripides"
+          ],
+          "works": [
+            {
+              "title": "Medea",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "ovidio",
+          "name": "Ovidio",
+          "short": "Ovidio",
+          "tier": "RECOMMENDED",
+          "country": "Antigua Roma",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Las metamorfosis",
+              "year": null,
+              "aliases": [
+                "Metamorfosis"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "seneca",
+          "name": "Séneca",
+          "short": "Séneca",
+          "tier": "RECOMMENDED",
+          "country": "Antigua Roma",
+          "aliases": [
+            "Seneca"
+          ],
+          "works": [
+            {
+              "title": "De la brevedad de la vida",
+              "year": null,
+              "aliases": []
+            },
+            {
+              "title": "Cartas a Lucilio",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "marco_aurelio",
+          "name": "Marco Aurelio",
+          "short": "Marco Aurelio",
+          "tier": "RECOMMENDED",
+          "country": "Antigua Roma",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Meditaciones",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "herodoto",
+          "name": "Heródoto",
+          "short": "Heródoto",
+          "tier": "SPECIALIZED",
+          "country": "Antigua Grecia",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Historia",
+              "year": null,
+              "aliases": [
+                "Historias"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "lucrecio",
+          "name": "Lucrecio",
+          "short": "Lucrecio",
+          "tier": "SPECIALIZED",
+          "country": "Antigua Roma",
+          "aliases": [],
+          "works": [
+            {
+              "title": "De la naturaleza de las cosas",
+              "year": null,
+              "aliases": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "es_golden",
+      "name": "🇪🇸 Siglo de Oro español",
+      "period": "Siglos XVI-XVII",
+      "region_ids": [
+        "es_xvi"
+      ],
+      "authors": [
+        {
+          "id": "cervantes",
+          "name": "Miguel de Cervantes",
+          "short": "Cervantes",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Novelas ejemplares",
+              "year": 1613,
+              "aliases": []
+            },
+            {
+              "title": "Don Quijote de la Mancha",
+              "year": 1605,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "lazarillo",
+          "name": "Anónimo",
+          "short": "Lazarillo",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Lazarillo de Tormes",
+              "year": 1554,
+              "aliases": [
+                "La vida de Lazarillo de Tormes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "lope",
+          "name": "Lope de Vega",
+          "short": "Lope",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Fuenteovejuna",
+              "year": 1619,
+              "aliases": []
+            },
+            {
+              "title": "El perro del hortelano",
+              "year": 1618,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "calderon",
+          "name": "Pedro Calderón de la Barca",
+          "short": "Calderón",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [
+            "Calderón de la Barca"
+          ],
+          "works": [
+            {
+              "title": "La vida es sueño",
+              "year": 1635,
+              "aliases": []
+            },
+            {
+              "title": "El alcalde de Zalamea",
+              "year": 1636,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "quevedo",
+          "name": "Francisco de Quevedo",
+          "short": "Quevedo",
+          "tier": "ESSENTIAL",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El Buscón",
+              "year": 1626,
+              "aliases": [
+                "Historia de la vida del Buscón"
+              ]
+            },
+            {
+              "title": "Sueños",
+              "year": 1627,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "gongora",
+          "name": "Luis de Góngora",
+          "short": "Góngora",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Fábula de Polifemo y Galatea",
+              "year": 1612,
+              "aliases": []
+            },
+            {
+              "title": "Soledades",
+              "year": 1613,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "rojas",
+          "name": "Fernando de Rojas",
+          "short": "Rojas",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "La Celestina",
+              "year": 1499,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "garcilaso",
+          "name": "Garcilaso de la Vega",
+          "short": "Garcilaso",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "Églogas",
+              "year": 1543,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "teresa",
+          "name": "Teresa de Jesús",
+          "short": "Teresa de Jesús",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [
+            "Santa Teresa de Jesús"
+          ],
+          "works": [
+            {
+              "title": "Libro de la vida",
+              "year": 1588,
+              "aliases": []
+            },
+            {
+              "title": "Las moradas",
+              "year": 1577,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "juan_cruz",
+          "name": "Juan de la Cruz",
+          "short": "Juan de la Cruz",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [
+            "San Juan de la Cruz"
+          ],
+          "works": [
+            {
+              "title": "Cántico espiritual",
+              "year": 1584,
+              "aliases": []
+            },
+            {
+              "title": "Noche oscura",
+              "year": 1618,
+              "aliases": []
+            }
+          ]
+        },
+        {
+          "id": "tirso",
+          "name": "Tirso de Molina",
+          "short": "Tirso",
+          "tier": "RECOMMENDED",
+          "country": "España",
+          "aliases": [],
+          "works": [
+            {
+              "title": "El burlador de Sevilla",
+              "year": 1630,
+              "aliases": []
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -200,3 +200,19 @@ def test_historial_inicial_desde_datos_antiguos(env):
     assert book["readings"][0]["finished"] == "2024"
     assert book["readings"][0]["reread"] is True
     assert snapshot["summary"]["byYear"] == {"2024": 1}
+
+def test_caminos_automaticos(env, monkeypatch):
+    from backend import paths_auto
+    monkeypatch.setattr(paths_auto, "MIN_AUTHORS", 2)
+
+    ids = [p["id"] for p in Atlas().snapshot()["paths"]]
+    assert "auto-r1" not in ids  # r1 ya tiene un camino curado
+
+    (env / "paths.json").write_text(json.dumps({"paths": []}), encoding="utf-8")
+    snapshot = Atlas().snapshot()
+    auto = next(p for p in snapshot["paths"] if p["id"] == "auto-r1")
+    assert auto["auto"] is True
+    assert auto["authors"][0]["id"] == "a1"  # el esencial va primero
+
+    Atlas().set_path_work("auto-r1", "a2", 0, "READ")
+    assert Atlas().books_by_id["b2"]["state"] == "READ"

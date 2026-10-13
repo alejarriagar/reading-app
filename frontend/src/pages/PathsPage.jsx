@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BookOpen, Check, Eye, Library, Lock, Sparkles, Users } from 'lucide-react'
 import { api } from '../api'
 import Cover from '../components/Cover'
+import PathPicker from '../components/PathPicker'
 import { Card, PageHeader, STATE_META, STATE_ORDER, StatCard, StateBadge, TIER_META, TierBadge, cx } from '../components/ui'
 
 const GAP = 150
@@ -127,7 +128,7 @@ function Legend() {
   )
 }
 
-function AuthorPanel({ author, position, total, workIndex, onSelectWork }) {
+function AuthorPanel({ author, position, total, workIndex, onSelectWork, auto }) {
   const readCount = author.works.filter(w => isRead(w.state)).length
   const tierLabel = (TIER_META[author.tier]?.label || 'relevante').toLowerCase()
   return (
@@ -149,7 +150,7 @@ function AuthorPanel({ author, position, total, workIndex, onSelectWork }) {
         <p className="mt-3 text-sm text-slate-400">Has leído {readCount} de {author.works.length} obras de este camino.</p>
       )}
 
-      <div className="mt-6 text-[11px] font-medium uppercase tracking-wider text-slate-500">Rama de obras · orden de lectura sugerido</div>
+      <div className="mt-6 text-[11px] font-medium uppercase tracking-wider text-slate-500">{auto ? 'Rama de obras · orden de publicación' : 'Rama de obras · orden de lectura sugerido'}</div>
       <div className="mt-2 space-y-1">
         {author.works.map((work, index) => (
           <button key={work.title} type="button" onClick={() => onSelectWork(index)} className={cx('flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition', index === workIndex ? 'border-sky-500/30 bg-sky-500/[0.06]' : 'border-transparent hover:bg-white/[0.03]')}>
@@ -227,18 +228,7 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
         subtitle="Recorridos visuales por una tradición. El orden refleja relevancia, no obligación: puedes empezar por cualquier punto."
       />
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        {paths.map(p => {
-          const active = p.id === path.id
-          const count = p.authors.filter(a => isRead(a.state)).length
-          return (
-            <button key={p.id} type="button" onClick={() => setPathId(p.id)} className={cx('rounded-xl border px-4 py-2.5 text-left transition', active ? 'border-sky-500/40 bg-sky-500/10' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15')}>
-              <div className={cx('text-sm font-medium', active ? 'text-white' : 'text-slate-300')}>{p.name}</div>
-              <div className="mt-0.5 text-[11px] text-slate-500">{count}/{p.authors.length} autores leídos</div>
-            </button>
-          )
-        })}
-      </div>
+      <PathPicker paths={paths} activeId={path.id} onSelect={setPathId} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={Users} label="Autores leídos" value={`${readAuthors}/${authors.length}`} hint="Con al menos una obra" tone="blue" />
@@ -248,7 +238,10 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
 
       <Card className="mt-6 p-2">
         <div className="flex items-center justify-between px-4 pt-3">
-          <div className="text-sm font-medium text-white">{path.name}</div>
+          <div className="flex items-center gap-2 text-sm font-medium text-white">
+            {path.name}
+            {path.auto && <span className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] font-normal text-slate-400">Generado del catálogo</span>}
+          </div>
           <Legend />
         </div>
         {!anyStarted && (
@@ -266,7 +259,7 @@ export default function PathsPage({ data, run, routeSub, setSub }) {
 
       {selected && (
         <div key={selected.id} className="fade-in mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <AuthorPanel author={selected} position={authors.indexOf(selected) + 1} total={authors.length} workIndex={workIndex} onSelectWork={index => setCurrent({ work: index })} />
+          <AuthorPanel author={selected} position={authors.indexOf(selected) + 1} total={authors.length} workIndex={workIndex} onSelectWork={index => setCurrent({ work: index })} auto={path.auto} />
           <WorkPanel work={selected.works[workIndex]} onChange={changeState} />
         </div>
       )}
