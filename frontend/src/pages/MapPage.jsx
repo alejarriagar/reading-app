@@ -145,17 +145,11 @@ function RegionDrawer({ region, data, regionsById, run, openAuthor, onSelect, on
   )
 }
 
-export default function MapPage({ data, run, openAuthor, focusRegionId, clearFocus }) {
+export default function MapPage({ data, run, openAuthor, routeSub, openRegion, closeRegion }) {
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState(null)
-
-  useEffect(() => {
-    if (focusRegionId) {
-      setSelectedId(focusRegionId)
-      clearFocus()
-    }
-  }, [focusRegionId, clearFocus])
+  const selectedId = routeSub
+  const setSelectedId = id => (id ? openRegion(id) : closeRegion())
   const regionsById = useMemo(() => Object.fromEntries(data.regions.map(r => [r.id, r])), [data.regions])
 
   const q = query.trim().toLowerCase()

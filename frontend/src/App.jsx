@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, BookMarked, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route } from 'lucide-react'
+import { AlertTriangle, BookMarked, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route, Search } from 'lucide-react'
 import { api } from './api'
 import Overview from './pages/Overview'
+import WorldPage from './pages/WorldPage'
 import MapPage from './pages/MapPage'
 import PathsPage from './pages/PathsPage'
-import WorldPage from './pages/WorldPage'
 import LibraryPage from './pages/LibraryPage'
 import AuthorDrawer from './components/AuthorDrawer'
 import BookModal from './components/BookModal'
+import CommandPalette from './components/CommandPalette'
 import { CompassModal, DiscoveryModal } from './components/DiscoveryModal'
 import { detectDiscovery } from './lib/discovery'
+import { useHashRoute } from './lib/router'
 import { ProgressBar, Toast, cx } from './components/ui'
 
 const NAV = [
@@ -22,17 +24,21 @@ const NAV = [
 
 const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage }
 
+const isTyping = target =>
+  target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
+
 export default function App() {
+  const [route, navigate] = useHashRoute()
   const [data, setData] = useState(null)
   const [loadError, setLoadError] = useState(null)
-  const [page, setPage] = useState('overview')
   const [toast, setToast] = useState(null)
-  const [authorId, setAuthorId] = useState(null)
-  const [bookId, setBookId] = useState(null)
   const [discovery, setDiscovery] = useState(null)
   const [compassAnchor, setCompassAnchor] = useState(null)
-  const [focusRegionId, setFocusRegionId] = useState(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const dataRef = useRef(null)
+  const depth = useRef(0)
+
+  const page = PAGES[route.page] ? route.page : 'overview'
 
   useEffect(() => {
     api.state()
@@ -45,6 +51,30 @@ export default function App() {
     const timer = setTimeout(() => setToast(null), 2600)
     return () => clearTimeout(timer)
   }, [toast])
+
+  // Cuando no hay nada abierto, el historial interno vuelve a cero.
+  useEffect(() => {
+    if (!route.author && !route.book && !(route.page === 'map' && route.sub)) depth.current = 0
+  }, [route])
+
+  useEffect(() => {
+    const item = NAV.find(n => n.id === page)
+    document.title = `${item ? item.label : 'Atlas'} · Atlas literario`
+  }, [page])
+
+  useEffect(() => {
+    const onKey = event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteOpen(open => !open)
+      } else if (event.key === '/' && !isTyping(event.target)) {
+        event.preventDefault()
+        setPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const run = useCallback(async (action, message) => {
     const before = dataRef.current
@@ -62,25 +92,56 @@ export default function App() {
     }
   }, [])
 
-  const closeAuthor = useCallback(() => setAuthorId(null), [])
-  const closeBook = useCallback(() => setBookId(null), [])
+  // Las fichas y paneles se apilan en el historial: "atrás" los cierra en orden.
+  const openOverlay = useCallback(patch => {
+    depth.current += 1
+    navigate(patch)
+  }, [navigate])
+
+  const closeOverlay = useCallback(patch => {
+    if (depth.current > 0) {
+      depth.current -= 1
+      window.history.back()
+    } else {
+      navigate(patch, { replace: true })
+    }
+  }, [navigate])
+
+  const goPage = useCallback(id => navigate({ page: id, sub: null, author: null, book: null }), [navigate])
+  const openAuthor = useCallback(id => openOverlay({ author: id, book: null }), [openOverlay])
+  const closeAuthor = useCallback(() => closeOverlay({ author: null, book: null }), [closeOverlay])
+  const editBook = useCallback(id => openOverlay({ book: id }), [openOverlay])
+  const closeBook = useCallback(() => closeOverlay({ book: null }), [closeOverlay])
+  const openRegion = useCallback(id => openOverlay({ page: 'map', sub: id }), [openOverlay])
+  const closeRegion = useCallback(() => closeOverlay({ sub: null }), [closeOverlay])
+  const setSub = useCallback((sub, options) => navigate({ sub }, options), [navigate])
   const closeDiscovery = useCallback(() => setDiscovery(null), [])
   const closeCompass = useCallback(() => setCompassAnchor(null), [])
-  const clearFocus = useCallback(() => setFocusRegionId(null), [])
+  const closePalette = useCallback(() => setPaletteOpen(false), [])
 
   const exploreAuthor = useCallback(id => {
     setDiscovery(null)
     setCompassAnchor(null)
-    setAuthorId(id)
-  }, [])
+    openAuthor(id)
+  }, [openAuthor])
 
   const exploreRegion = useCallback(id => {
     setDiscovery(null)
     setCompassAnchor(null)
-    setAuthorId(null)
-    setFocusRegionId(id)
-    setPage('map')
-  }, [])
+    depth.current = 1
+    navigate({ page: 'map', sub: id, author: null, book: null })
+  }, [navigate])
+
+  const handleCommand = useCallback(entry => {
+    setPaletteOpen(false)
+    if (entry.type === 'page') goPage(entry.id)
+    else if (entry.type === 'author') openAuthor(entry.id)
+    else if (entry.type === 'book') editBook(entry.id)
+    else if (entry.type === 'region') exploreRegion(entry.id)
+    else if (entry.type === 'path') navigate({ page: 'paths', sub: entry.id, author: null, book: null })
+    else if (entry.id === 'compass') setCompassAnchor({ regionId: null })
+    else if (entry.id === 'add-book') navigate({ page: 'library', sub: 'nueva', author: null, book: null })
+  }, [goPage, openAuthor, editBook, exploreRegion, navigate])
 
   if (loadError) {
     return (
@@ -100,23 +161,25 @@ export default function App() {
   }
 
   const Page = PAGES[page]
-  const book = bookId ? data.books.find(item => item.id === bookId) : null
+  const book = route.book ? data.books.find(item => item.id === route.book) : null
   const ctx = {
     data,
     run,
-    go: setPage,
-    openAuthor: setAuthorId,
-    editBook: setBookId,
+    go: goPage,
+    openAuthor,
+    editBook,
     openCompass: setCompassAnchor,
-    focusRegionId,
-    clearFocus,
+    routeSub: route.sub,
+    setSub,
+    openRegion,
+    closeRegion,
   }
   const { summary } = data
 
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0A111F]/90 px-4 py-6">
-        <div className="mb-8 flex items-center gap-3 px-2">
+        <div className="mb-6 flex items-center gap-3 px-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl text-white shadow-lg shadow-blue-600/30" style={{ background: 'linear-gradient(135deg,#2563EB,#0EA5E9)' }}>
             <BookMarked size={18} />
           </div>
@@ -126,6 +189,15 @@ export default function App() {
           </div>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="mb-6 flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-400 transition hover:border-white/20 hover:text-slate-200"
+        >
+          <Search size={14} />Buscar…
+          <kbd className="ml-auto rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-slate-400">Ctrl K</kbd>
+        </button>
+
         <nav className="space-y-1">
           {NAV.map(item => {
             const Icon = item.icon
@@ -134,7 +206,7 @@ export default function App() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setPage(item.id)}
+                onClick={() => goPage(item.id)}
                 className={cx(
                   'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition',
                   active ? 'bg-white/[0.07] text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200',
@@ -165,10 +237,11 @@ export default function App() {
         </div>
       </main>
 
-      {authorId && <AuthorDrawer authorId={authorId} {...ctx} onClose={closeAuthor} />}
+      {route.author && <AuthorDrawer authorId={route.author} {...ctx} onClose={closeAuthor} />}
       {book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} />}
       {discovery && <DiscoveryModal discovery={discovery} data={data} onClose={closeDiscovery} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
       {compassAnchor && <CompassModal anchor={compassAnchor} data={data} onClose={closeCompass} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
+      <CommandPalette open={paletteOpen} data={data} onClose={closePalette} onSelect={handleCommand} />
       {toast && <Toast {...toast} />}
     </div>
   )

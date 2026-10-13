@@ -190,9 +190,10 @@ function WorkPanel({ work, onChange }) {
   )
 }
 
-export default function PathsPage({ data, run }) {
+export default function PathsPage({ data, run, routeSub, setSub }) {
   const paths = data.paths
-  const [pathId, setPathId] = useState(paths[0]?.id)
+  const pathId = paths.some(p => p.id === routeSub) ? routeSub : paths[0]?.id
+  const setPathId = id => setSub(id, { replace: true })
   const [selection, setSelection] = useState({})
 
   const path = paths.find(p => p.id === pathId) || paths[0]

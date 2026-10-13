@@ -107,13 +107,14 @@ function AddBookModal({ data, run, onClose }) {
   )
 }
 
-export default function LibraryPage({ data, run, editBook, openAuthor }) {
+export default function LibraryPage({ data, run, editBook, openAuthor, routeSub, setSub }) {
   const [query, setQuery] = useState('')
   const [stateFilter, setStateFilter] = useState('ALL')
   const [year, setYear] = useState('ALL')
   const [sort, setSort] = useState({ key: 'year', dir: 'desc' })
   const [page, setPage] = useState(0)
-  const [adding, setAdding] = useState(false)
+  const [addingLocal, setAdding] = useState(false)
+  const adding = addingLocal || routeSub === 'nueva'
 
   const years = useMemo(() => [...new Set(data.books.map(b => b.year).filter(Boolean))].sort((a, b) => b - a), [data.books])
 
@@ -218,7 +219,7 @@ export default function LibraryPage({ data, run, editBook, openAuthor }) {
         </div>
       </Card>
 
-      {adding && <AddBookModal data={data} run={run} onClose={() => setAdding(false)} />}
+      {adding && <AddBookModal data={data} run={run} onClose={() => { setAdding(false); if (routeSub === 'nueva') setSub(null, { replace: true }) }} />}
     </>
   )
 }
