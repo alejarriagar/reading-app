@@ -48,7 +48,7 @@ export default function App() {
 
   useEffect(() => {
     if (!toast) return undefined
-    const timer = setTimeout(() => setToast(null), 2600)
+    const timer = setTimeout(() => setToast(null), toast.action ? 6000 : 2600)
     return () => clearTimeout(timer)
   }, [toast])
 
@@ -76,6 +76,21 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const undoRef = useRef(null)
+  const undo = useCallback(async () => {
+    setToast(null)
+    setDiscovery(null)
+    try {
+      const next = await api.undo()
+      dataRef.current = next
+      setData(next)
+      setToast({ kind: 'success', message: `Deshecho: ${next.undone}` })
+    } catch (error) {
+      setToast({ kind: 'error', message: error.message })
+    }
+  }, [])
+  undoRef.current = undo
+
   const run = useCallback(async (action, message) => {
     const before = dataRef.current
     try {
@@ -84,7 +99,7 @@ export default function App() {
       setData(next)
       const found = before ? detectDiscovery(before, next) : null
       if (found) setDiscovery(found)
-      else if (message) setToast({ kind: 'success', message })
+      else if (message) setToast({ kind: 'success', message, action: { label: 'Deshacer', onClick: () => undoRef.current() } })
       return true
     } catch (error) {
       setToast({ kind: 'error', message: error.message })
@@ -228,6 +243,7 @@ export default function App() {
           <div className="text-xs text-slate-400">territorios desbloqueados</div>
           <ProgressBar value={summary.regionsUnlocked / Math.max(1, summary.regionsTotal)} className="mt-3" />
           <p className="mt-3 text-[11px] leading-relaxed text-slate-500">Sin rutas obligatorias: tú decides hacia dónde explorar.</p>
+          <a href="/api/export" download className="mt-3 inline-flex text-[11px] text-slate-400 transition hover:text-sky-300">Exportar mis datos (JSON)</a>
         </div>
       </aside>
 
@@ -239,7 +255,7 @@ export default function App() {
 
       {route.author && <AuthorDrawer authorId={route.author} {...ctx} onClose={closeAuthor} />}
       {book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} />}
-      {discovery && <DiscoveryModal discovery={discovery} data={data} onClose={closeDiscovery} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
+      {discovery && <DiscoveryModal discovery={discovery} data={data} onClose={closeDiscovery} onAuthor={exploreAuthor} onRegion={exploreRegion} onUndo={undo} />}
       {compassAnchor && <CompassModal anchor={compassAnchor} data={data} onClose={closeCompass} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
       <CommandPalette open={paletteOpen} data={data} onClose={closePalette} onSelect={handleCommand} />
       {toast && <Toast {...toast} />}

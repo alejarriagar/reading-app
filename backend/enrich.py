@@ -21,7 +21,8 @@ import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from backend.atlas import CATALOG_FILE, PATHS_FILE, PROFILE_FILE, ROOT, WIKIDATA_FILE, norm, read_json
+from backend import store
+from backend.atlas import CATALOG_FILE, DEFAULT_PROFILE, PATHS_FILE, ROOT, WIKIDATA_FILE, norm, read_json
 
 UA = "AtlasLiterario/1.1 (https://github.com/alejarriagar/reading-app; personal reading app)"
 SPARQL = "https://query.wikidata.org/sparql"
@@ -169,7 +170,7 @@ def chunks(items, size):
 
 def load_base():
     catalog = read_json(CATALOG_FILE)
-    profile = read_json(PROFILE_FILE) if PROFILE_FILE.exists() else {}
+    profile = store.load_profile(DEFAULT_PROFILE)
     regions = dict(catalog["regions"])
     for region in profile.get("custom_regions", []):
         regions[region["id"]] = region

@@ -27,4 +27,6 @@ export const api = {
   toggleMastery: regionId => request(`/regions/${id(regionId)}/mastery`, { method: 'POST' }),
   discoverRegion: regionId => request(`/regions/${id(regionId)}/discover`, { method: 'POST' }),
   setPathWork: (pathId, body) => request(`/paths/${id(pathId)}/works`, json('POST', body)),
+  undo: () => request('/undo', { method: 'POST' }),
+  history: () => request('/history'),
 }

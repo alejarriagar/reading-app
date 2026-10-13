@@ -21,7 +21,7 @@ function Stat({ value, label }) {
   )
 }
 
-export function DiscoveryModal({ discovery, data, onClose, onAuthor, onRegion }) {
+export function DiscoveryModal({ discovery, data, onClose, onAuthor, onRegion, onUndo }) {
   const { book, author, firstOfAuthor, newlyUnlocked, touched, primary, before } = discovery
   const isNew = newlyUnlocked.length > 0
   const title = isNew ? 'Nuevo territorio descubierto' : 'Territorio ampliado'
@@ -37,7 +37,7 @@ export function DiscoveryModal({ discovery, data, onClose, onAuthor, onRegion })
       subtitle={`«${book.title}» · ${author?.name || book.authorName}`}
       onClose={onClose}
       width="max-w-3xl"
-      footer={<Button variant="ghost" onClick={onClose}>Seguir por mi cuenta</Button>}
+      footer={<>{onUndo && <Button variant="ghost" onClick={onUndo}>Deshacer</Button>}<Button variant="ghost" onClick={onClose}>Seguir por mi cuenta</Button></>}
     >
       <div
         className="relative overflow-hidden rounded-2xl border border-sky-500/20 p-6"

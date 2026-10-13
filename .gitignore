@@ -10,3 +10,11 @@ reading_progress*.tmp
 app.legacy.py
 _ui_backup/
 _install_atlas_ui.py
+frontend/node_modules/
+frontend/dist/
+_cache/
+atlas.db
+atlas.db-wal
+atlas.db-shm
+backups/
+.pytest_cache/

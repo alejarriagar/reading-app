@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from backend import store
 from backend.geo import world_summary
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,13 +62,9 @@ class Atlas:
         self.paths = read_json(PATHS_FILE).get("paths", []) if PATHS_FILE.exists() else []
         self.wikidata = read_json(WIKIDATA_FILE) if WIKIDATA_FILE.exists() else {}
 
-        profile = copy.deepcopy(DEFAULT_PROFILE)
-        if PROFILE_FILE.exists():
-            saved = read_json(PROFILE_FILE)
-            if not isinstance(saved, dict):
-                raise RuntimeError("reading_progress.json no tiene un formato válido.")
-            profile.update(saved)
-        self.profile = profile
+        self.profile = store.load_profile(DEFAULT_PROFILE)
+        self._before = copy.deepcopy(self.profile)
+        self.label = "Cambio"
         self._index()
 
     # ------------------------------------------------------------------
@@ -128,14 +125,8 @@ class Atlas:
         ]
 
     def save(self):
-        if PROFILE_FILE.exists() and not BACKUP_FILE.exists():
-            shutil.copy2(PROFILE_FILE, BACKUP_FILE)
-        temporary = PROFILE_FILE.with_suffix(".json.tmp")
-        temporary.write_text(
-            json.dumps(self.profile, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        os.replace(temporary, PROFILE_FILE)
+        store.save_profile(self.profile, self._before, self.label)
+        self._before = copy.deepcopy(self.profile)
         self._index()
 
     # ------------------------------------------------------------------

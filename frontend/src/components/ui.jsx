@@ -191,11 +191,16 @@ export function Drawer({ open, title, subtitle, onClose, children, footer }) {
   )
 }
 
-export function Toast({ message, kind }) {
+export function Toast({ message, kind, action }) {
   return (
     <div className="pop-in fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-xl border border-white/10 bg-[#111A2C] px-4 py-3 text-sm text-slate-200 shadow-2xl">
       {kind === 'error' ? <AlertTriangle size={16} className="text-amber-400" /> : <CheckCircle2 size={16} className="text-emerald-400" />}
       {message}
+      {action && (
+        <button type="button" onClick={action.onClick} className="ml-2 rounded-md px-2 py-1 text-xs font-semibold text-sky-300 transition hover:bg-white/5">
+          {action.label}
+        </button>
+      )}
     </div>
   )
 }
