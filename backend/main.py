@@ -1,4 +1,8 @@
 import os
+import base64
+import binascii
+from backend import xlsx_import
+from backend import xlsx_jobs
 import sqlite3
 from pathlib import Path
 from threading import Lock
@@ -355,6 +359,7 @@ def library_payload(user):
     users = accounts.list_users()
     readers = {c["id"]: [] for c in copies}
     my_books = {}
+    my_magazines = {}
     for person in users:
         atlas = open_atlas(person)
         for copy_id, book_id in library.match_books(copies, atlas).items():
@@ -365,12 +370,25 @@ def library_payload(user):
                                      "state": book["state"], "rating": book.get("rating")})
             if person["id"] == user["id"]:
                 my_books[copy_id] = book_id
+        for item in copies:
+            record = atlas.profile.get("magazine_records", {}).get(item["id"])
+            if item.get("mediaKind") != "MAGAZINE" or not record:
+                continue
+            original_state = xlsx_import.reading_state(record.get("reading"))
+            state = "READ" if original_state == "READ" else "DISCOVERED" if original_state == "PARTIAL" else "LOCKED"
+            readers[item["id"]].append({
+                "userId": person["id"], "name": person["name"],
+                "state": state, "rating": xlsx_import.rating(record.get("ratingOriginal")),
+            })
+            if person["id"] == user["id"]:
+                my_magazines[item["id"]] = record
     activate(user)
     return {
         "houses": houses,
         "users": [{"id": u["id"], "name": u["name"]} for u in users],
         "formats": library.FORMATS,
-        "copies": [{**c, "readers": readers[c["id"]], "myBookId": my_books.get(c["id"])} for c in copies],
+        "copies": [{**c, "readers": readers[c["id"]], "myBookId": my_books.get(c["id"]),
+                    "myMagazine": my_magazines.get(c["id"])} for c in copies],
     }
 
 
@@ -584,6 +602,86 @@ def catalog_reset(kind: str, resource_id: str, body: CatalogResetIn,
     return execute(user, lambda atlas: catalogue.reset(
         atlas, user, kind, resource_id, body.expected_version,
     ))
+
+
+class ExcelPreviewIn(BaseModel):
+    content: str = Field(max_length=12_000_000)
+    target_user_id: str
+
+
+class ExcelCommitIn(BaseModel):
+    target_user_id: str
+    rows: list[dict]
+
+
+@app.post("/api/library/xlsx/preview")
+def preview_excel(body: ExcelPreviewIn, user: dict = Depends(current_user)):
+    with LOCK:
+        try:
+            data = base64.b64decode(body.content, validate=True)
+            return xlsx_import.preview(data, user, body.target_user_id)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/library/xlsx/import")
+def import_excel(body: ExcelCommitIn, user: dict = Depends(current_user)):
+    with LOCK:
+        try:
+            return xlsx_import.commit(
+                body.rows, user, body.target_user_id, open_atlas,
+            )
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        finally:
+            activate(user)
+
+
+@app.post("/api/library/xlsx/jobs")
+def start_excel_job(body: ExcelCommitIn, user: dict = Depends(current_user)):
+    try:
+        target = xlsx_import.authorized_target(user, body.target_user_id)
+        if not body.rows or len(body.rows) > xlsx_import.MAX_ROWS:
+            raise ValueError("Selecciona entre 1 y 3.000 filas.")
+
+        # Validación antes de aceptar el trabajo.
+        rows = [xlsx_import.clean_row(row) for row in body.rows]
+
+        def task(progress):
+            with LOCK:
+                try:
+                    return xlsx_import.commit(
+                        rows, user, target["id"], open_atlas, progress=progress,
+                    )
+                finally:
+                    activate(user)
+
+        return xlsx_jobs.start(user, target["id"], task)
+
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except xlsx_jobs.ImportBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/library/xlsx/jobs/{job_id}")
+def excel_job_status(job_id: str, user: dict = Depends(current_user)):
+    # No usa LOCK: debe poder consultarse mientras se procesa el lote.
+    try:
+        return xlsx_jobs.status(job_id, user)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="El seguimiento no está disponible. Si se reinició el servidor, revisa el lote desde la vista previa.",
+        ) from exc
 
 
 @app.post("/api/undo")

@@ -191,11 +191,31 @@ export default function CopyModal({ copy, lib, me, run, editBook, onClose, onSav
         Firmado o dedicado
       </label>
 
+      {copy?.excel && (
+        <div className="mt-4 rounded-xl border border-white/10 p-3 text-xs leading-relaxed text-slate-400">
+          <div className="font-medium text-slate-200">Datos originales del Excel</div>
+          <div>{copy.excel.sourceSheet} · fila {copy.excel.sourceRow}</div>
+          {copy.excel.genre && <div>Género: {copy.excel.genre}</div>}
+          {copy.excel.volumes && <div>Volúmenes: {copy.excel.volumes}</div>}
+          {copy.excel.number && <div>Número: {copy.excel.number}</div>}
+          {copy.excel.price && <div>Precio: {copy.excel.price} pesetas</div>}
+          {copy.excel.location && <div>Emplazamiento original: {copy.excel.location}</div>}
+        </div>
+      )}
+      {copy?.myMagazine && (
+        <div className="mt-4 rounded-xl border border-white/10 p-3 text-xs text-slate-400">
+          <div className="font-medium text-slate-200">Tus datos personales de esta revista</div>
+          <div>Lectura original: {copy.myMagazine.reading || "Sin indicar"}</div>
+          {copy.myMagazine.ratingOriginal && <div>Valoración: {copy.myMagazine.ratingOriginal}</div>}
+          {copy.myMagazine.quotes && <p className="mt-2 whitespace-pre-wrap">Frases: {copy.myMagazine.quotes}</p>}
+          {copy.myMagazine.comment && <p className="mt-2 whitespace-pre-wrap">Comentario: {copy.myMagazine.comment}</p>}
+        </div>
+      )}
       <Field label="Notas" className="mt-4">
         <textarea className={cx(inputClass, 'h-20 resize-none py-2')} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Regalo de…, edición especial, estado…" />
       </Field>
 
-      {copy && (
+      {copy && copy.mediaKind !== "MAGAZINE" && (
         <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4">
           <div className="text-xs font-medium text-slate-300">Tu lectura</div>
           {copy.myBookId ? (

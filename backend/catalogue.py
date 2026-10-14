@@ -171,14 +171,18 @@ def info(atlas, kind, resource_id):
         origin = "Catálogo y Wikidata" if is_wiki else "Catálogo manual"
         fetched = wiki.get("generatedAt") if is_wiki else None
     else:
-        is_wiki = any(
-            book["id"] == resource_id
-            for book in wiki.get("books", [])
-        )
+        wiki_book_ids = getattr(atlas, "_catalog_wiki_book_ids", None)
+        if wiki_book_ids is None:
+            wiki_book_ids = {book["id"] for book in wiki.get("books", [])}
+            atlas._catalog_wiki_book_ids = wiki_book_ids
+        is_wiki = resource_id in wiki_book_ids
         origin = "Wikidata" if is_wiki else "Catálogo manual"
         fetched = wiki.get("generatedAt") if is_wiki else None
 
-    names = {user["id"]: user["name"] for user in accounts.list_users()}
+    names = getattr(atlas, "_catalog_user_names", None)
+    if names is None:
+        names = {user["id"]: user["name"] for user in accounts.list_users()}
+        atlas._catalog_user_names = names
 
     return {
         "scope": scope,

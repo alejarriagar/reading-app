@@ -17,6 +17,7 @@ from contextlib import closing
 from datetime import datetime
 
 from backend import accounts
+from backend import excel_meta
 
 FORMATS = {
     "HARDCOVER": "Tapa dura",
@@ -317,7 +318,7 @@ def list_copies():
     result = [dict(zip(keys, row)) for row in rows]
     for item in result:
         item["signed"] = bool(item["signed"])
-    return result
+    return excel_meta.decorate(result)
 
 
 # ------------------------------- relación con las lecturas -------------------------------
@@ -337,6 +338,8 @@ def match_books(copies, atlas):
 
     result = {}
     for item in copies:
+        if item.get("mediaKind") == "MAGAZINE":
+            continue
         options = by_title.get(_norm(item["title"]), [])
         if not options:
             continue

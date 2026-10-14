@@ -5,6 +5,7 @@ import Cover from '../components/Cover'
 import CopyModal from '../components/CopyModal'
 import HousesModal from '../components/HousesModal'
 import ImportModal from '../components/ImportModal'
+import ExcelImportModal from '../components/ExcelImportModal'
 import WishlistSection from '../components/WishlistSection'
 import { Button, Card, PageHeader, Segmented, StatCard, cx, inputClass } from '../components/ui'
 import { FORMAT_LABELS, initials, normalize } from '../lib/shelves'
@@ -46,6 +47,7 @@ export default function ShelvesPage({ data, run, editBook }) {
   const [error, setError] = useState(null)
   const [house, setHouse] = useState('ALL')
   const [owner, setOwner] = useState('ALL')
+  const [media, setMedia] = useState('ALL')
   const [filter, setFilter] = useState('ALL')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
@@ -87,6 +89,7 @@ export default function ShelvesPage({ data, run, editBook }) {
   const q = normalize(query)
   const visible = lib.copies
     .filter(c => house === 'ALL' || c.houseId === house)
+    .filter(c => media === 'ALL' || c.mediaKind === media)
     .filter(c => owner === 'ALL' || (owner === 'FAMILY' ? !c.ownerId : c.ownerId === owner))
     .filter(c => filter === 'ALL'
       || (filter === 'UNREAD' && !readByMe(c))
@@ -119,6 +122,7 @@ export default function ShelvesPage({ data, run, editBook }) {
         subtitle="Qué libros tenéis, en qué casa están y quién los ha leído. Es una biblioteca compartida entre los perfiles."
         actions={
           <>
+            <Button onClick={() => setModal({ type: 'excel' })}><Upload size={15} />Importar Excel</Button>
             <Button onClick={() => setModal({ type: 'import' })}><Upload size={15} />Importar CSV</Button>
             <Button variant="primary" onClick={() => setModal({ type: 'copy', copy: null })}><Plus size={15} />Añadir libro</Button>
           </>
@@ -190,6 +194,11 @@ export default function ShelvesPage({ data, run, editBook }) {
           <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input value={query} onChange={e => { setQuery(e.target.value); setPage(0) }} placeholder="Buscar título, autor, ISBN o editorial…" className={cx(inputClass, 'pl-9')} />
         </div>
+        <select value={media} onChange={e => { setMedia(e.target.value); setPage(0) }} className={cx(inputClass, 'w-40')}>
+          <option value="ALL">Libros y revistas</option>
+          <option value="BOOK">Solo libros</option>
+          <option value="MAGAZINE">Solo revistas</option>
+        </select>
         <select value={owner} onChange={e => { setOwner(e.target.value); setPage(0) }} className={cx(inputClass, 'w-48')}>
           <option value="ALL">De cualquiera</option>
           {lib.users.map(u => <option key={u.id} value={u.id}>De {u.name}</option>)}
@@ -210,6 +219,7 @@ export default function ShelvesPage({ data, run, editBook }) {
           <p className="text-sm text-slate-300">Aún no habéis registrado libros.</p>
           <p className="mt-1 text-xs text-slate-500">Añade uno con su ISBN o importa vuestro CSV.</p>
           <div className="mt-5 flex justify-center gap-2">
+            <Button onClick={() => setModal({ type: 'excel' })}><Upload size={15} />Importar Excel</Button>
             <Button onClick={() => setModal({ type: 'import' })}><Upload size={15} />Importar CSV</Button>
             <Button variant="primary" onClick={() => setModal({ type: 'copy', copy: null })}><Plus size={15} />Añadir libro</Button>
           </div>
@@ -235,7 +245,7 @@ export default function ShelvesPage({ data, run, editBook }) {
                         <Cover src={c.cover} size="sm" />
                         <div className="min-w-0">
                           <div className="font-medium text-slate-100">{c.title}</div>
-                          <div className="text-xs text-slate-500">{c.author || 'Autor desconocido'}</div>
+                          <div className="text-xs text-slate-500">{c.mediaKind === 'MAGAZINE' ? `Revista${c.excel?.number ? ` · Nº ${c.excel.number}` : ''}` : c.author || 'Autor desconocido'}</div>
                           <div className="text-[11px] text-slate-600">
                             {[c.publisher, c.editionYear, FORMAT_LABELS[c.format], c.signed ? 'Firmado' : null].filter(Boolean).join(' · ')}
                           </div>
@@ -271,6 +281,7 @@ export default function ShelvesPage({ data, run, editBook }) {
       {modal?.type === 'copy' && (
         <CopyModal key={modal.copy?.id || 'new'} copy={modal.copy} lib={lib} me={me} run={run} editBook={editBook} onClose={() => setModal(null)} onSaved={saved} />
       )}
+      {modal?.type === 'excel' && <ExcelImportModal lib={lib} me={me} run={run} onClose={() => setModal(null)} onSaved={next => apply(next)} />}
       {modal?.type === 'import' && <ImportModal lib={lib} me={me} onClose={() => setModal(null)} onSaved={next => apply(next)} />}
       {modal?.type === 'houses' && <HousesModal lib={lib} onClose={() => setModal(null)} onSaved={apply} />}
     </>

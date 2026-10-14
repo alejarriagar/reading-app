@@ -269,6 +269,7 @@ class Atlas:
                 "reread": bool(b.get("reread")),
                 "notes": b.get("notes") or "",
                 "published": b.get("published"),
+                "excelSources": b.get("excelSources", []),
                 "stateSince": self.state_since.get(b["id"]),
                 "catalogInfo": catalogue.info(self, "book", b["id"]),
                 **readings.fields(reading_index.get(b["id"], [])),
@@ -357,6 +358,7 @@ class Atlas:
         readings.apply_state(self.profile, book_id, old_state, state)
         self.profile["book_statuses"][book_id] = state
         self.profile["book_metadata"][book_id] = {
+            **self.profile["book_metadata"].get(book_id, {}),
             "year": readings.latest_year(self.profile, book_id) or year,
             "rating": rating,
             "reread": readings.is_reread(self.profile, book_id) or bool(reread),

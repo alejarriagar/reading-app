@@ -206,6 +206,19 @@ export default function BookModal({ book, run, onClose, shelf, correctBook }) {
         <textarea className={cx(inputClass, 'h-28 resize-none py-2')} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Personajes, impresiones, citas…" />
       </Field>
 
+      {(book.excelSources || []).length > 0 && (
+        <details className="mt-5 rounded-xl border border-white/10 p-3 text-xs text-slate-400">
+          <summary className="cursor-pointer text-slate-200">Datos personales originales del Excel</summary>
+          {book.excelSources.map((source, index) => (
+            <div key={index} className="mt-3 border-t border-white/5 pt-3">
+              <div>{source.sourceSheet} · fila {source.sourceRow}</div>
+              <div>Lectura: {source.reading || "Sin indicar"} · Nota: {source.ratingOriginal || "Sin indicar"}</div>
+              {source.quotes && <p className="mt-2 whitespace-pre-wrap">Frases: {source.quotes}</p>}
+              {source.comment && <p className="mt-2 whitespace-pre-wrap">Comentario: {source.comment}</p>}
+            </div>
+          ))}
+        </details>
+      )}
       {error && <p className="mt-4 text-xs text-amber-400">{error}</p>}
     </Modal>
   )
