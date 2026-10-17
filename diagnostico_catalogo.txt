@@ -1,0 +1,2891 @@
+===== ARCHIVO: backend\atlas.py =====
+
+import copy
+import json
+import os
+import re
+import shutil
+import unicodedata
+import uuid
+from collections import defaultdict
+from datetime import datetime
+from pathlib import Path
+
+from backend import store
+from backend.geo import world_summary
+from backend.recommend import recommend
+from backend.paths_auto import auto_paths
+from backend import custom_paths
+from backend import genres
+from backend import library
+from backend import readings
+
+ROOT = Path(__file__).resolve().parents[1]
+CATALOG_FILE = ROOT / "assets" / "catalog.json"
+PATHS_FILE = ROOT / "assets" / "paths.json"
+WIKIDATA_FILE = ROOT / "assets" / "wikidata.json"
+PROFILE_FILE = ROOT / "reading_progress.json"
+BACKUP_FILE = ROOT / "reading_progress.backup.json"
+
+BOOK_STATES = ["LOCKED", "DISCOVERED", "READING", "READ"]
+TIERS = ["ESSENTIAL", "RECOMMENDED", "SPECIALIZED"]
+RANK = {state: index for index, state in enumerate(BOOK_STATES)}
+
+DEFAULT_PROFILE = {
+    "book_statuses": {},
+    "book_metadata": {},
+    "mastered_regions": [],
+    "mastered_authors": [],
+    "tier_overrides": {},
+    "custom_books": [],
+    "custom_authors": [],
+    "custom_regions": [],
+    "author_region_additions": {},
+    "discovered_regions": [],
+    "discovered_authors": [],
+}
+
+
+def norm(value):
+    value = re.sub(r"\(.*?\)", " ", str(value))
+    value = unicodedata.normalize("NFD", value.casefold())
+    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+
+def read_json(path):
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def best_state(states):
+    return max(states, key=lambda state: RANK.get(state, 0), default="LOCKED")
+
+
+class Atlas:
+    def __init__(self):
+        if not CATALOG_FILE.exists():
+            raise RuntimeError("Falta assets/catalog.json.")
+        self.catalog = read_json(CATALOG_FILE)
+        self.paths = read_json(PATHS_FILE).get("paths", []) if PATHS_FILE.exists() else []
+        self.wikidata = read_json(WIKIDATA_FILE) if WIKIDATA_FILE.exists() else {}
+
+        self.profile = store.load_profile(DEFAULT_PROFILE)
+        self._before = copy.deepcopy(self.profile)
+        self.label = "Cambio"
+        self.state_since = store.state_timestamps()
+        self.tracking_since = store.get_meta("created_at")
+        self._index()
+        if readings.initialize(self.profile):
+            self.label = "Preparar historial de lecturas"
+            self.save()
+            self.label = "Cambio"
+
+    # ------------------------------------------------------------------
+    def _index(self):
+        profile = self.profile
+        self._all_paths = None
+
+        regions = copy.deepcopy(self.catalog["regions"])
+        for region in profile["custom_regions"]:
+            regions[region["id"]] = copy.deepcopy(region)
+
+        authors = copy.deepcopy(self.catalog["authors"])
+        for author in profile["custom_authors"]:
+            authors[author["id"]] = copy.deepcopy(author)
+        wiki = self.wikidata or {}
+        self.covers = wiki.get("covers", {})
+        for author_id, author in wiki.get("authors", {}).items():
+            if author_id not in authors:
+                authors[author_id] = copy.deepcopy(author)
+        for author_id, info in wiki.get("enrich", {}).items():
+            if author_id not in authors:
+                continue
+            target = authors[author_id]
+            for key in ("qid", "birth", "death", "image", "influencedBy"):
+                if info.get(key) is not None:
+                    target[key] = info[key]
+            target["movements"] = list(dict.fromkeys(target.get("movements", []) + info.get("movements", [])))
+            target["regions"] = sorted(set(target.get("regions", []) + [r for r in info.get("regions", []) if r in regions]))
+        for author_id, extra in profile["author_region_additions"].items():
+            if author_id in authors:
+                authors[author_id]["regions"] = sorted(
+                    set(authors[author_id].get("regions", []) + extra)
+                )
+
+        metadata = profile.get("book_metadata", {})
+        books = []
+        for book in self.catalog["books"] + wiki.get("books", []) + profile["custom_books"]:
+            merged = {**copy.deepcopy(book), **metadata.get(book["id"], {})}
+            merged["state"] = profile["book_statuses"].get(book["id"], "LOCKED")
+            books.append(merged)
+
+        self.regions = regions
+        self.authors = authors
+        self.books = books
+        self.books_by_id = {book["id"]: book for book in books}
+        self.books_by_author = defaultdict(list)
+        for book in books:
+            self.books_by_author[book["author"]].append(book)
+
+        self._library = [
+            {
+                "id": book["id"],
+                "title": book["title"],
+                "title_key": norm(book["title"]),
+                "author_key": norm(authors.get(book["author"], {}).get("name", "")),
+                "state": book["state"],
+            }
+            for book in books
+        ]
+
+    def save(self):
+        store.save_profile(self.profile, self._before, self.label)
+        self.state_since = store.state_timestamps()
+        self._before = copy.deepcopy(self.profile)
+        self._index()
+
+    # ------------------------------------------------------------------
+    def all_paths(self):
+        if getattr(self, "_all_paths", None) is None:
+            self._all_paths = self.paths + custom_paths.expand(self) + auto_paths(self)
+        return self._all_paths
+
+    def cover_for(self, title, author_name):
+        return self.covers.get(f"{norm(title)}|{norm(author_name)}") or None
+
+    def region_state(self, region_id):
+        if region_id in self.profile["mastered_regions"]:
+            return "MASTERED"
+        states = [b["state"] for b in self.books if region_id in b.get("regions", [])]
+        for state in ("READ", "READING", "DISCOVERED"):
+            if state in states:
+                return state
+        if region_id in self.profile["discovered_regions"]:
+            return "DISCOVERED"
+        return "LOCKED"
+
+    def author_state(self, author_id, region_id=None):
+        states = [
+            b["state"] for b in self.books_by_author.get(author_id, [])
+            if region_id is None or region_id in b.get("regions", [])
+        ]
+        if "READ" in states:
+            return "MASTERED" if author_id in self.profile["mastered_authors"] else "READ"
+        if "READING" in states:
+            return "READING"
+        if "DISCOVERED" in states or author_id in self.profile["discovered_authors"]:
+            return "DISCOVERED"
+        return "LOCKED"
+
+    def tier(self, region_id, author_id):
+        default = self.authors[author_id].get("tier", "SPECIALIZED")
+        return self.profile["tier_overrides"].get(f"{region_id}::{author_id}", default)
+
+    def region_summary(self, region_id):
+        region = self.regions[region_id]
+        entries = [
+            {
+                "id": author_id,
+                "tier": self.tier(region_id, author_id),
+                "state": self.author_state(author_id, region_id),
+            }
+            for author_id, author in self.authors.items()
+            if region_id in author.get("regions", [])
+        ]
+        entries.sort(key=lambda e: (TIERS.index(e["tier"]), self.authors[e["id"]]["name"]))
+        done = [e for e in entries if e["state"] in ("READ", "MASTERED")]
+        tiers = {
+            tier: {
+                "read": sum(1 for e in done if e["tier"] == tier),
+                "total": sum(1 for e in entries if e["tier"] == tier),
+            }
+            for tier in TIERS
+        }
+        return {
+            "id": region_id,
+            "name": region["name"],
+            "type": region.get("type", ""),
+            "state": self.region_state(region_id),
+            "read": len(done),
+            "total": len(entries),
+            "rate": len(done) / len(entries) if entries else 0.0,
+            "tiers": tiers,
+            "authors": entries,
+            "works": sum(1 for b in self.books if region_id in b.get("regions", [])),
+            "frontiers": [f for f in region.get("frontiers", []) if f in self.regions],
+        }
+
+    def path_status(self, path):
+        result = []
+        for author in path.get("authors", []):
+            keys = {norm(n) for n in [author["name"], *author.get("aliases", [])]}
+            own = [row for row in self._library if row["author_key"] in keys]
+            matched = set()
+            works = []
+            for work in author.get("works", []):
+                titles = {norm(t) for t in [work["title"], *work.get("aliases", [])]}
+                matches = [row for row in own if row["title_key"] in titles]
+                matched.update(row["id"] for row in matches)
+                best = max(matches, key=lambda row: RANK.get(row["state"], 0), default=None)
+                works.append({
+                    "title": work["title"],
+                    "year": work.get("year"),
+                    "aliases": work.get("aliases", []),
+                    "state": best["state"] if best else "LOCKED",
+                    "bookId": best["id"] if best else None,
+                    "cover": self.cover_for(work["title"], author["name"]),
+                })
+            result.append({
+                "id": author["id"],
+                "name": author["name"],
+                "short": author.get("short") or author["name"],
+                "tier": author.get("tier", "SPECIALIZED"),
+                "country": author.get("country", ""),
+                "aliases": author.get("aliases", []),
+                "state": best_state([r["state"] for r in own] + [w["state"] for w in works]),
+                "otherRead": [r["title"] for r in own if r["id"] not in matched and r["state"] == "READ"],
+                "works": works,
+            })
+        return result
+
+    def snapshot(self):
+        mastered_authors = set(self.profile["mastered_authors"])
+        reading_index = readings.index(self.profile)
+        genre_index = genres.classify_all(self.books, self.profile["book_metadata"])
+        books = []
+        for b in self.books:
+            books.append({
+                "id": b["id"],
+                "title": b["title"],
+                "author": b["author"],
+                "authorName": self.authors.get(b["author"], {}).get("name", "Autor desconocido"),
+                "state": b["state"],
+                "year": b.get("year"),
+                "rating": b.get("rating"),
+                "reread": bool(b.get("reread")),
+                "notes": b.get("notes") or "",
+                "published": b.get("published"),
+                "stateSince": self.state_since.get(b["id"]),
+                **readings.fields(reading_index.get(b["id"], [])),
+                **genre_index.get(b["id"], {"genre": None, "genreSource": None}),
+                "cover": self.cover_for(b["title"], self.authors.get(b["author"], {}).get("name", "")),
+                "regions": [r for r in b.get("regions", []) if r in self.regions],
+            })
+
+        influenced = defaultdict(set)
+        for source_id, source in self.authors.items():
+            for target_id in source.get("influencedBy", []):
+                if target_id in self.authors:
+                    influenced[target_id].add(source_id)
+
+        authors = {
+            author_id: {
+                "id": author_id,
+                "name": a["name"],
+                "country": a.get("country", ""),
+                "period": a.get("period", ""),
+                "movements": a.get("movements", []),
+                "regions": [r for r in a.get("regions", []) if r in self.regions],
+                "related": [r for r in a.get("related", []) if r in self.authors],
+                "state": self.author_state(author_id),
+                "mastered": author_id in mastered_authors,
+                "qid": a.get("qid"),
+                "birth": a.get("birth"),
+                "death": a.get("death"),
+                "image": a.get("image"),
+                "influencedBy": [i for i in a.get("influencedBy", []) if i in self.authors],
+                "influenced": sorted(influenced.get(author_id, [])),
+            }
+            for author_id, a in self.authors.items()
+        }
+
+        regions = [self.region_summary(region_id) for region_id in self.regions]
+        read = [b for b in books if b["state"] == "READ"]
+        ratings = [b["rating"] for b in read if b["rating"] is not None]
+        by_year = readings.finished_by_year(self.profile, read)
+        shelf = library.shelf_for(self)
+        shelf_owned = {
+            book_id: " y ".join(sorted({c["houseName"] for c in items if c["houseName"]}))
+            for book_id, items in shelf["byBook"].items()
+        }
+
+        return {
+            "summary": {
+                "booksRead": len(read),
+                "reading": sum(1 for b in books if b["state"] == "READING"),
+                "authorsRead": len({b["author"] for b in read}),
+                "regionsUnlocked": sum(1 for r in regions if r["state"] != "LOCKED"),
+                "regionsTotal": len(regions),
+                "averageRating": sum(ratings) / len(ratings) if ratings else None,
+                "byYear": dict(by_year),
+                "trackingSince": self.tracking_since,
+                "finishedThisYear": by_year.get(str(datetime.now().year), 0),
+            },
+            "regions": regions,
+            "authors": authors,
+            "books": books,
+            "world": world_summary(self.authors, self.author_state, self.books_by_author),
+            "recommendations": recommend(self, regions, owned=shelf_owned),
+            "shelf": shelf,
+            "paths": [
+                {"id": p["id"], "name": p["name"], "period": p.get("period", ""), "auto": bool(p.get("auto")),
+                 "custom": bool(p.get("custom")), "description": p.get("description", ""),
+                 "mine": bool(p.get("mine")), "ownerName": p.get("ownerName"),
+                 "regionIds": p.get("region_ids", []), "authors": self.path_status(p)}
+                for p in self.all_paths()
+            ],
+        }
+
+    # ------------------------------------------------------------------
+    def update_book(self, book_id, state, year, rating, reread, notes, reading_items=None, genre=None):
+        if book_id not in self.books_by_id:
+            raise KeyError(book_id)
+        if state not in BOOK_STATES:
+            raise ValueError("Estado no válido.")
+        if genre not in (None, "") and genre not in genres.GENRES:
+            raise ValueError("Tipo de obra no válido.")
+        previous_genre = self.profile["book_metadata"].get(book_id, {}).get("genre")
+        old_state = self.profile["book_statuses"].get(book_id, "LOCKED")
+        if reading_items is not None:
+            readings.replace(self.profile, book_id, reading_items)
+        readings.apply_state(self.profile, book_id, old_state, state)
+        self.profile["book_statuses"][book_id] = state
+        self.profile["book_metadata"][book_id] = {
+            "year": readings.latest_year(self.profile, book_id) or year,
+            "rating": rating,
+            "reread": readings.is_reread(self.profile, book_id) or bool(reread),
+            "notes": notes or "",
+            "genre": previous_genre if genre is None else (genre or None),
+        }
+        self.save()
+
+    def start_reread(self, book_id):
+        if book_id not in self.books_by_id:
+            raise KeyError(book_id)
+        readings.start_reread(self.profile, book_id)
+        self.profile["book_statuses"][book_id] = "READING"
+        metadata = dict(self.profile["book_metadata"].get(book_id, {}))
+        metadata["reread"] = True
+        self.profile["book_metadata"][book_id] = metadata
+        self.save()
+
+    def add_book(self, title, author_name, country="", period="", movements=None,
+                 region_ids=None, state="DISCOVERED", save=True):
+        title = (title or "").strip()
+        author_name = (author_name or "").strip()
+        if not title or not author_name:
+            raise ValueError("El título y el autor son obligatorios.")
+        if state not in BOOK_STATES:
+            raise ValueError("Estado no válido.")
+
+        region_ids = list(dict.fromkeys(region_ids or []))
+        unknown = [r for r in region_ids if r not in self.regions]
+        if unknown:
+            raise ValueError(f"Territorios desconocidos: {unknown}")
+
+        title_key, author_key = norm(title), norm(author_name)
+        if any(r["title_key"] == title_key and r["author_key"] == author_key for r in self._library):
+            raise ValueError("Esa obra ya está en tu biblioteca.")
+
+        movements = [m.strip() for m in (movements or []) if m and m.strip()]
+        author_id = next(
+            (aid for aid, a in self.authors.items() if norm(a["name"]) == author_key),
+            None,
+        )
+
+        if author_id is None:
+            author_id = f"custom-author-{uuid.uuid4().hex[:12]}"
+            self.profile["custom_authors"].append({
+                "id": author_id,
+                "name": author_name,
+                "country": (country or "").strip() or "No especificado",
+                "period": (period or "").strip() or "No especificado",
+                "movements": movements,
+                "tier": "SPECIALIZED",
+                "regions": region_ids,
+                "related": [],
+            })
+        else:
+            extra = self.profile["author_region_additions"].get(author_id, [])
+            self.profile["author_region_additions"][author_id] = sorted(set(extra + region_ids))
+            for custom in self.profile["custom_authors"]:
+                if custom["id"] == author_id:
+                    custom["regions"] = sorted(set(custom.get("regions", []) + region_ids))
+
+        book_id = f"custom-book-{uuid.uuid4().hex[:12]}"
+        self.profile["custom_books"].append({
+            "id": book_id,
+            "title": title,
+            "author": author_id,
+            "regions": region_ids,
+        })
+        self.profile["book_statuses"][book_id] = state
+        readings.apply_state(self.profile, book_id, "LOCKED", state)
+        if state == "READ":
+            self.profile["book_metadata"][book_id] = {
+                "year": datetime.now().year, "rating": None, "reread": False, "notes": "",
+            }
+        if save:
+            self.save()
+        return book_id
+
+    def set_tier(self, region_id, author_id, tier):
+        if region_id not in self.regions:
+            raise KeyError(region_id)
+        if author_id not in self.authors:
+            raise KeyError(author_id)
+        if tier not in TIERS:
+            raise ValueError("Clasificación no válida.")
+        self.profile["tier_overrides"][f"{region_id}::{author_id}"] = tier
+        self.save()
+
+    def toggle_region_mastery(self, region_id):
+        if region_id not in self.regions:
+            raise KeyError(region_id)
+        mastered = self.profile["mastered_regions"]
+        if region_id in mastered:
+            mastered.remove(region_id)
+        else:
+            mastered.append(region_id)
+        self.save()
+
+    def discover_region(self, region_id):
+        if region_id not in self.regions:
+            raise KeyError(region_id)
+        if region_id not in self.profile["discovered_regions"]:
+            self.profile["discovered_regions"].append(region_id)
+            self.save()
+
+    def set_path_work(self, path_id, author_id, work_index, state):
+        if state not in BOOK_STATES:
+            raise ValueError("Estado no válido.")
+        path = next((p for p in self.all_paths() if p["id"] == path_id), None)
+        if path is None:
+            raise KeyError(path_id)
+        author = next((a for a in self.path_status(path) if a["id"] == author_id), None)
+        if author is None or not 0 <= work_index < len(author["works"]):
+            raise KeyError(author_id)
+
+        work = author["works"][work_index]
+        book_id = work["bookId"]
+
+        if book_id is None:
+            if state == "LOCKED":
+                return
+            keys = {norm(n) for n in [author["name"], *author.get("aliases", [])]}
+            existing = next(
+                (a["name"] for a in self.authors.values() if norm(a["name"]) in keys),
+                author["name"],
+            )
+            region_ids = [r for r in path.get("region_ids", []) if r in self.regions]
+            book_id = self.add_book(
+                work["title"], existing, author.get("country", ""),
+                path.get("period", ""), [], region_ids, "DISCOVERED", save=False,
+            )
+
+        metadata = dict(self.profile["book_metadata"].get(book_id, {}))
+        readings.apply_state(self.profile, book_id, self.profile["book_statuses"].get(book_id, "LOCKED"), state)
+        metadata["year"] = readings.latest_year(self.profile, book_id) or metadata.get("year")
+        self.profile["book_statuses"][book_id] = state
+        self.profile["book_metadata"][book_id] = metadata
+        self.save()
+
+===== ARCHIVO: backend\genres.py =====
+
+"""Tipo de cada obra: novela, relatos, poesía, teatro o ensayo y no ficción.
+
+Prioridad: elección del usuario > Wikidata > clasificación de partida > deducción.
+"""
+import json
+import re
+import unicodedata
+from collections import Counter, defaultdict
+from functools import lru_cache
+from pathlib import Path
+
+GENRES = ("NOVELA", "RELATO", "POESIA", "TEATRO", "ENSAYO")
+THOUGHT_REGIONS = {"philosophy", "social_sciences", "science_essay"}
+SEEDS_FILE = Path(__file__).resolve().parents[1] / "assets" / "genres.json"
+
+
+def _norm(value):
+    value = re.sub(r"\(.*?\)", " ", str(value or ""))
+    value = unicodedata.normalize("NFD", value.casefold())
+    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+
+@lru_cache(maxsize=1)
+def load_seeds():
+    if not SEEDS_FILE.exists():
+        return {}
+    data = json.loads(SEEDS_FILE.read_text(encoding="utf-8-sig"))
+    seeds = {}
+    for genre in GENRES:
+        for title in data.get(genre, []):
+            seeds[_norm(title)] = genre
+    return seeds
+
+
+def classify_all(books, metadata):
+    seeds = load_seeds()
+    direct = {}
+    for book in books:
+        user = (metadata.get(book["id"]) or {}).get("genre")
+        if user in GENRES:
+            direct[book["id"]] = (user, "user")
+        elif book.get("wdGenre") in GENRES:
+            direct[book["id"]] = (book["wdGenre"], "catalog")
+        elif seeds.get(_norm(book["title"])) in GENRES:
+            direct[book["id"]] = (seeds[_norm(book["title"])], "catalog")
+        elif THOUGHT_REGIONS & set(book.get("regions", [])):
+            direct[book["id"]] = ("ENSAYO", "inferred")
+
+    by_author = defaultdict(Counter)
+    for book in books:
+        found = direct.get(book["id"])
+        if found and found[1] != "inferred":
+            by_author[book["author"]][found[0]] += 1
+
+    result = {}
+    for book in books:
+        genre, source = direct.get(book["id"], (None, None))
+        if genre is None:
+            counts = by_author.get(book["author"])
+            if counts:
+                top, n = counts.most_common(1)[0]
+                if n >= 2 and n / sum(counts.values()) >= 0.8:
+                    genre, source = top, "inferred"
+        result[book["id"]] = {"genre": genre, "genreSource": source}
+    return result
+
+===== ARCHIVO: backend\library.py =====
+
+"""Biblioteca física familiar: casas, ejemplares, préstamos e importación CSV.
+
+Es compartida entre perfiles y se guarda en data/accounts.db.
+Las lecturas siguen siendo de cada perfil: un ejemplar se relaciona con
+las obras de cada uno por título y autor.
+"""
+import csv
+import io
+import json
+import re
+import unicodedata
+import urllib.parse
+import urllib.request
+import uuid
+from collections import defaultdict
+from contextlib import closing
+from datetime import datetime
+
+from backend import accounts
+
+FORMATS = {
+    "HARDCOVER": "Tapa dura",
+    "PAPERBACK": "Tapa blanda",
+    "POCKET": "Bolsillo",
+    "EBOOK": "Libro electrónico",
+    "AUDIO": "Audiolibro",
+    "OTHER": "Otro",
+}
+FORMAT_ALIASES = {
+    "tapa dura": "HARDCOVER", "cartone": "HARDCOVER", "hardcover": "HARDCOVER",
+    "tapa blanda": "PAPERBACK", "rustica": "PAPERBACK", "paperback": "PAPERBACK",
+    "bolsillo": "POCKET", "pocket": "POCKET",
+    "ebook": "EBOOK", "e book": "EBOOK", "digital": "EBOOK", "kindle": "EBOOK",
+    "electronico": "EBOOK", "libro electronico": "EBOOK",
+    "audio": "AUDIO", "audiolibro": "AUDIO", "audiobook": "AUDIO",
+}
+DEFAULT_HOUSES = ("Pozuelo", "Boadilla")
+FAMILY_WORDS = {"familia", "ambos", "compartido", "compartida", "los dos", "todos"}
+UA = "AtlasLiterario/1.2 (https://github.com/alejarriagar/reading-app; personal reading app)"
+MAX_IMPORT = 3000
+
+HEADERS = {
+    "title": ["titulo", "título", "title", "libro", "obra"],
+    "author": ["autor", "autora", "author", "autores", "authors"],
+    "isbn": ["isbn", "isbn13", "isbn10", "isbn 13", "isbn 10"],
+    "publisher": ["editorial", "publisher", "editor"],
+    "edition_year": ["año", "ano", "year", "año edicion", "año de edicion", "fecha", "publicacion"],
+    "house": ["casa", "ubicacion", "ubicación", "house", "lugar", "location"],
+    "owner": ["propietario", "propietaria", "dueño", "dueno", "owner"],
+    "format": ["formato", "format", "encuadernacion"],
+    "notes": ["notas", "notes", "comentarios", "observaciones"],
+    "language": ["idioma", "language", "lengua"],
+}
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS house (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  position INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS copy (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  author TEXT NOT NULL DEFAULT '',
+  work_key TEXT NOT NULL,
+  isbn TEXT,
+  publisher TEXT,
+  edition_year INTEGER,
+  language TEXT,
+  format TEXT,
+  house_id TEXT NOT NULL,
+  owner_id TEXT,
+  signed INTEGER NOT NULL DEFAULT 0,
+  notes TEXT NOT NULL DEFAULT '',
+  loan_to TEXT,
+  loan_since TEXT,
+  move_to TEXT,
+  cover TEXT,
+  created_by TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS copy_house ON copy (house_id);
+"""
+COLUMNS = ("title", "author", "work_key", "isbn", "publisher", "edition_year", "language", "format",
+           "house_id", "owner_id", "signed", "notes", "loan_to", "loan_since", "move_to", "cover")
+
+
+def _norm(value):
+    value = re.sub(r"\(.*?\)", " ", str(value or ""))
+    value = unicodedata.normalize("NFD", value.casefold())
+    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+
+def _now():
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _connect():
+    conn = accounts.connect()
+    conn.executescript(SCHEMA)
+    return conn
+
+
+def _text(value, limit, label, required=False):
+    text = str(value or "").strip()
+    if required and not text:
+        raise ValueError(f"Falta {label}.")
+    if len(text) > limit:
+        raise ValueError(f"{label[0].upper() + label[1:]} es demasiado largo.")
+    return text
+
+
+def _date(value):
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        datetime.strptime(text, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError(f"Fecha no válida: «{text}». Usa AAAA-MM-DD.") from exc
+    return text
+
+
+def _year(value):
+    if value in (None, ""):
+        return None
+    if isinstance(value, int):
+        year = value
+    else:
+        match = re.search(r"\d{4}", str(value))
+        if not match:
+            return None
+        year = int(match.group())
+    return year if 1000 <= year <= 2200 else None
+
+
+def _format(value):
+    key = _norm(value)
+    if not key:
+        return None
+    if key.upper() in FORMATS:
+        return key.upper()
+    return FORMAT_ALIASES.get(key, "OTHER")
+
+
+def clean_isbn(value):
+    text = re.sub(r"[^0-9Xx]", "", str(value or "")).upper()
+    if not text:
+        return ""
+    if len(text) not in (10, 13) or "X" in text[:-1]:
+        raise ValueError(f"ISBN no válido: «{value}». Debe tener 10 o 13 cifras.")
+    return text
+
+
+def work_key(title, author):
+    first = re.split(r",|;| y | & ", str(author or ""))[0]
+    return f"{_norm(title)}|{_norm(first)}"
+
+
+# ------------------------------- casas -------------------------------
+
+def _insert_house(conn, name):
+    house_id = uuid.uuid4().hex[:10]
+    position = conn.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM house").fetchone()[0]
+    conn.execute("INSERT INTO house (id, name, position) VALUES (?, ?, ?)", (house_id, name, position))
+    return house_id
+
+
+def list_houses():
+    with closing(_connect()) as conn:
+        rows = conn.execute("SELECT id, name FROM house ORDER BY position, name").fetchall()
+        if not rows:
+            with conn:
+                for name in DEFAULT_HOUSES:
+                    _insert_house(conn, name)
+            rows = conn.execute("SELECT id, name FROM house ORDER BY position, name").fetchall()
+    return [{"id": r[0], "name": r[1]} for r in rows]
+
+
+def add_house(name):
+    name = _text(name, 40, "el nombre de la casa", True)
+    list_houses()
+    with closing(_connect()) as conn:
+        try:
+            with conn:
+                return _insert_house(conn, name)
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError("Ya existe una casa con ese nombre.") from exc
+
+
+def rename_house(house_id, name):
+    name = _text(name, 40, "el nombre de la casa", True)
+    with closing(_connect()) as conn:
+        if conn.execute("SELECT 1 FROM house WHERE id = ?", (house_id,)).fetchone() is None:
+            raise KeyError(house_id)
+        try:
+            with conn:
+                conn.execute("UPDATE house SET name = ? WHERE id = ?", (name, house_id))
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError("Ya existe una casa con ese nombre.") from exc
+
+
+def delete_house(house_id):
+    with closing(_connect()) as conn:
+        if conn.execute("SELECT 1 FROM house WHERE id = ?", (house_id,)).fetchone() is None:
+            raise KeyError(house_id)
+        if conn.execute("SELECT COUNT(*) FROM house").fetchone()[0] <= 1:
+            raise ValueError("Tiene que quedar al menos una casa.")
+        if conn.execute("SELECT 1 FROM copy WHERE house_id = ? OR move_to = ?", (house_id, house_id)).fetchone():
+            raise ValueError("Esa casa tiene libros. Muévelos o elimínalos antes.")
+        with conn:
+            conn.execute("DELETE FROM house WHERE id = ?", (house_id,))
+
+
+# ------------------------------- ejemplares -------------------------------
+
+def clean_copy(payload, house_ids, user_ids):
+    title = _text(payload.get("title"), 300, "el título", True)
+    author = _text(payload.get("author"), 200, "el autor")
+    house_id = payload.get("house_id")
+    if house_id not in house_ids:
+        raise ValueError("Elige en qué casa está el libro.")
+    owner_id = payload.get("owner_id") or None
+    if owner_id and owner_id not in user_ids:
+        raise ValueError("Propietario desconocido.")
+    move_to = payload.get("move_to") or None
+    if move_to and (move_to not in house_ids or move_to == house_id):
+        move_to = None
+    fmt = payload.get("format") or None
+    if fmt and fmt not in FORMATS:
+        fmt = "OTHER"
+    cover = _text(payload.get("cover"), 500, "la portada")
+    loan_to = _text(payload.get("loan_to"), 80, "a quién se ha prestado") or None
+    return {
+        "title": title,
+        "author": author,
+        "work_key": work_key(title, author),
+        "isbn": clean_isbn(payload.get("isbn")) or None,
+        "publisher": _text(payload.get("publisher"), 120, "la editorial") or None,
+        "edition_year": _year(payload.get("edition_year")),
+        "language": _text(payload.get("language"), 40, "el idioma") or None,
+        "format": fmt,
+        "house_id": house_id,
+        "owner_id": owner_id,
+        "signed": 1 if payload.get("signed") else 0,
+        "notes": _text(payload.get("notes"), 2000, "las notas"),
+        "loan_to": loan_to,
+        "loan_since": _date(payload.get("loan_since")) if loan_to else None,
+        "move_to": move_to,
+        "cover": cover if cover.startswith("https://") else None,
+    }
+
+
+def _context():
+    return {h["id"] for h in list_houses()}, {u["id"] for u in accounts.list_users()}
+
+
+def _insert_copy(conn, data, created_by):
+    copy_id = uuid.uuid4().hex[:12]
+    now = _now()
+    placeholders = ", ".join("?" * (len(COLUMNS) + 4))
+    conn.execute(
+        f"INSERT INTO copy (id, {', '.join(COLUMNS)}, created_by, created_at, updated_at) VALUES ({placeholders})",
+        (copy_id, *[data[c] for c in COLUMNS], created_by, now, now),
+    )
+    return copy_id
+
+
+def add_copy(payload, created_by):
+    data = clean_copy(payload, *_context())
+    with closing(_connect()) as conn:
+        with conn:
+            return _insert_copy(conn, data, created_by)
+
+
+def update_copy(copy_id, payload):
+    data = clean_copy(payload, *_context())
+    with closing(_connect()) as conn:
+        if conn.execute("SELECT 1 FROM copy WHERE id = ?", (copy_id,)).fetchone() is None:
+            raise KeyError(copy_id)
+        with conn:
+            conn.execute(
+                f"UPDATE copy SET {', '.join(f'{c} = ?' for c in COLUMNS)}, updated_at = ? WHERE id = ?",
+                (*[data[c] for c in COLUMNS], _now(), copy_id),
+            )
+
+
+def delete_copy(copy_id):
+    with closing(_connect()) as conn:
+        with conn:
+            if conn.execute("DELETE FROM copy WHERE id = ?", (copy_id,)).rowcount == 0:
+                raise KeyError(copy_id)
+
+
+def arrived(copy_id):
+    with closing(_connect()) as conn:
+        row = conn.execute("SELECT move_to FROM copy WHERE id = ?", (copy_id,)).fetchone()
+        if row is None:
+            raise KeyError(copy_id)
+        if not row[0]:
+            raise ValueError("Este libro no estaba marcado para llevar a otra casa.")
+        with conn:
+            conn.execute("UPDATE copy SET house_id = move_to, move_to = NULL, updated_at = ? WHERE id = ?", (_now(), copy_id))
+
+
+def list_copies():
+    keys = ("id", "title", "author", "workKey", "isbn", "publisher", "editionYear", "language", "format",
+            "houseId", "ownerId", "signed", "notes", "loanTo", "loanSince", "moveTo", "cover", "createdAt", "updatedAt")
+    with closing(_connect()) as conn:
+        rows = conn.execute(
+            "SELECT id, title, author, work_key, isbn, publisher, edition_year, language, format, house_id, owner_id, "
+            "signed, notes, loan_to, loan_since, move_to, cover, created_at, updated_at FROM copy"
+        ).fetchall()
+    result = [dict(zip(keys, row)) for row in rows]
+    for item in result:
+        item["signed"] = bool(item["signed"])
+    return result
+
+
+# ------------------------------- relación con las lecturas -------------------------------
+
+def match_books(copies, atlas):
+    """Relaciona cada ejemplar con una obra de la biblioteca de lecturas de un perfil."""
+    by_title = defaultdict(list)
+    for book in atlas.books:
+        author_name = atlas.authors.get(book["author"], {}).get("name", "")
+        by_title[_norm(book["title"])].append((book["id"], _norm(author_name)))
+
+    result = {}
+    for item in copies:
+        options = by_title.get(_norm(item["title"]), [])
+        if not options:
+            continue
+        author = _norm(item["author"])
+        exact = next((bid for bid, a in options if a and a == author), None)
+        if exact:
+            result[item["id"]] = exact
+            continue
+        parts = [_norm(p) for p in re.split(r",|;| y | & ", item["author"] or "")]
+        surnames = {p.split()[-1] for p in parts if p}
+        loose = next((bid for bid, a in options if surnames and any(s in a.split() for s in surnames)), None)
+        if loose:
+            result[item["id"]] = loose
+        elif not author and len(options) == 1:
+            result[item["id"]] = options[0][0]
+    return result
+
+
+def shelf_for(atlas):
+    houses = list_houses()
+    house_names = {h["id"]: h["name"] for h in houses}
+    users = {u["id"]: u["name"] for u in accounts.list_users()}
+    copies = list_copies()
+    by_book = defaultdict(list)
+    for copy_id, book_id in match_books(copies, atlas).items():
+        item = next(c for c in copies if c["id"] == copy_id)
+        by_book[book_id].append({
+            "id": copy_id,
+            "houseName": house_names.get(item["houseId"]),
+            "ownerName": users.get(item["ownerId"], "la familia") if item["ownerId"] else "la familia",
+            "loanTo": item["loanTo"],
+            "moveTo": house_names.get(item["moveTo"]),
+        })
+    return {"houses": houses, "count": len(copies), "byBook": dict(by_book)}
+
+
+# ------------------------------- ISBN -------------------------------
+
+def _get_json(url, params):
+    request = urllib.request.Request(f"{url}?{urllib.parse.urlencode(params)}", headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def lookup_isbn(value):
+    isbn = clean_isbn(value)
+    if not isbn:
+        raise ValueError("Escribe un ISBN.")
+    result = {"isbn": isbn}
+
+    try:
+        data = _get_json("https://www.googleapis.com/books/v1/volumes", {"q": f"isbn:{isbn}", "maxResults": 1})
+        if data.get("items"):
+            info = data["items"][0].get("volumeInfo", {})
+            result["title"] = info.get("title")
+            result["author"] = ", ".join(info.get("authors") or [])
+            result["publisher"] = info.get("publisher")
+            result["edition_year"] = _year(info.get("publishedDate"))
+            result["language"] = info.get("language")
+            thumb = (info.get("imageLinks") or {}).get("thumbnail")
+            if thumb:
+                result["cover"] = thumb.replace("http://", "https://").replace("&edge=curl", "")
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        data = _get_json("https://openlibrary.org/api/books", {"bibkeys": f"ISBN:{isbn}", "format": "json", "jscmd": "data"})
+        info = data.get(f"ISBN:{isbn}") or {}
+        if info:
+            result["title"] = result.get("title") or info.get("title")
+            result["author"] = result.get("author") or ", ".join(a.get("name", "") for a in info.get("authors", []))
+            if not result.get("publisher") and info.get("publishers"):
+                result["publisher"] = info["publishers"][0].get("name")
+            result["edition_year"] = result.get("edition_year") or _year(info.get("publish_date"))
+            cover = info.get("cover") or {}
+            result["cover"] = result.get("cover") or cover.get("medium") or cover.get("large")
+    except Exception:  # noqa: BLE001
+        pass
+
+    if not result.get("title"):
+        raise KeyError("No he encontrado ese ISBN en Google Books ni en Open Library.")
+    result["cover"] = result.get("cover") or f"https://covers.openlibrary.org/b/isbn/{isbn}-M.jpg?default=false"
+    return result
+
+
+# ------------------------------- CSV -------------------------------
+
+def parse_csv(text):
+    text = (text or "").lstrip("\ufeff")
+    if not text.strip():
+        raise ValueError("El archivo está vacío.")
+    sample = text[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=";,\t|")
+    except csv.Error:
+        class Fallback(csv.excel):
+            delimiter = ";" if sample.count(";") >= sample.count(",") else ","
+        dialect = Fallback
+
+    rows = list(csv.reader(io.StringIO(text), dialect))
+    if not rows:
+        raise ValueError("El archivo está vacío.")
+
+    header = [_norm(h) for h in rows[0]]
+    mapping = {}
+    for field, names in HEADERS.items():
+        wanted = {_norm(n) for n in names}
+        for index, name in enumerate(header):
+            if name in wanted and field not in mapping:
+                mapping[field] = index
+    if "title" not in mapping and "isbn" not in mapping:
+        raise ValueError("No encuentro una columna de título ni de ISBN. Revisa la primera fila (las cabeceras).")
+
+    parsed = []
+    for raw in rows[1:]:
+        if not any(cell.strip() for cell in raw):
+            continue
+        parsed.append({field: (raw[i].strip() if i < len(raw) else "") for field, i in mapping.items()})
+    if len(parsed) > MAX_IMPORT:
+        raise ValueError(f"Máximo {MAX_IMPORT} filas por importación.")
+    return {"columns": {field: rows[0][i] for field, i in mapping.items()}, "rows": parsed}
+
+
+def preview_csv(text):
+    parsed = parse_csv(text)
+    copies = list_copies()
+    keys = {c["workKey"] for c in copies}
+    isbns = {c["isbn"] for c in copies if c["isbn"]}
+
+    def duplicate(row):
+        if row.get("title") and work_key(row["title"], row.get("author")) in keys:
+            return True
+        try:
+            return bool(row.get("isbn")) and clean_isbn(row["isbn"]) in isbns
+        except ValueError:
+            return False
+
+    rows = parsed["rows"]
+    return {
+        "columns": parsed["columns"],
+        "rows": rows,
+        "total": len(rows),
+        "withoutTitle": sum(1 for r in rows if not r.get("title")),
+        "isbnOnly": sum(1 for r in rows if not r.get("title") and r.get("isbn")),
+        "duplicates": sum(1 for r in rows if duplicate(r)),
+    }
+
+
+def import_rows(rows, default_house_id, default_owner_id, skip_duplicates, created_by):
+    houses = {_norm(h["name"]): h["id"] for h in list_houses()}
+    users = {_norm(u["name"]): u["id"] for u in accounts.list_users()}
+    if default_house_id not in houses.values():
+        raise ValueError("Elige una casa por defecto.")
+    if default_owner_id and default_owner_id not in users.values():
+        raise ValueError("Propietario por defecto desconocido.")
+
+    copies = list_copies()
+    existing = {(c["workKey"], c["houseId"]) for c in copies} | {(c["isbn"], c["houseId"]) for c in copies if c["isbn"]}
+    created, skipped, errors = 0, 0, []
+
+    with closing(_connect()) as conn:
+        with conn:
+            for number, row in enumerate(rows[:MAX_IMPORT], start=2):
+                title = str(row.get("title") or "").strip()
+                if not title:
+                    errors.append(f"Fila {number}: sin título")
+                    continue
+
+                house_key = _norm(row.get("house"))
+                if house_key and house_key not in houses:
+                    houses[house_key] = _insert_house(conn, str(row["house"]).strip()[:40])
+                house_id = houses.get(house_key) or default_house_id
+
+                owner_key = _norm(row.get("owner"))
+                if not owner_key:
+                    owner_id = default_owner_id
+                elif owner_key in FAMILY_WORDS:
+                    owner_id = None
+                else:
+                    owner_id = users.get(owner_key)
+                    if owner_id is None:
+                        errors.append(f"Fila {number}: propietario «{row.get('owner')}» desconocido; queda como familia")
+
+                try:
+                    isbn = clean_isbn(row.get("isbn"))
+                except ValueError:
+                    errors.append(f"Fila {number}: ISBN no válido, se ignora")
+                    isbn = ""
+
+                payload = {
+                    "title": title,
+                    "author": row.get("author", ""),
+                    "isbn": isbn,
+                    "publisher": row.get("publisher", ""),
+                    "edition_year": row.get("edition_year"),
+                    "language": row.get("language", ""),
+                    "format": _format(row.get("format")),
+                    "house_id": house_id,
+                    "owner_id": owner_id,
+                    "notes": row.get("notes", ""),
+                    "cover": row.get("cover") or "",
+                }
+                try:
+                    data = clean_copy(payload, set(houses.values()), set(users.values()))
+                except ValueError as exc:
+                    errors.append(f"Fila {number}: {exc}")
+                    continue
+
+                key = (data["work_key"], house_id)
+                isbn_key = (data["isbn"], house_id)
+                if skip_duplicates and (key in existing or (data["isbn"] and isbn_key in existing)):
+                    skipped += 1
+                    continue
+                _insert_copy(conn, data, created_by)
+                existing.add(key)
+                if data["isbn"]:
+                    existing.add(isbn_key)
+                created += 1
+
+    return {"created": created, "skipped": skipped, "errors": errors[:50], "errorCount": len(errors)}
+
+===== ARCHIVO: backend\accounts.py =====
+
+"""Perfiles, PIN, sesiones y caminos compartidos entre perfiles.
+
+Cada perfil tiene su propia base de datos de lecturas. El perfil principal
+usa la base de datos original (atlas.db), así que no se pierde nada.
+"""
+import hashlib
+import hmac
+import json
+import secrets
+import sqlite3
+import time
+import uuid
+from contextlib import closing
+from datetime import datetime
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ACCOUNTS_FILE = ROOT / "data" / "accounts.db"
+OWNER_DIR = ROOT
+PROFILES_DIR = ROOT / "data" / "profiles"
+
+MIN_PIN = 6
+MAX_FAILURES = 5
+LOCK_SECONDS = 15 * 60
+SESSION_DAYS = 30
+_FAILURES = {}
+
+
+class TooManyAttempts(Exception):
+    pass
+
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS user (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  pin_hash TEXT NOT NULL,
+  salt TEXT NOT NULL,
+  is_owner INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS session (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  expires_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS shared_path (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT,
+  position INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+"""
+
+
+def connect():
+    ACCOUNTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(ACCOUNTS_FILE, timeout=15)
+    conn.executescript(SCHEMA)
+    return conn
+
+
+def _now():
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _hash_pin(pin, salt):
+    return hashlib.scrypt(pin.encode("utf-8"), salt=bytes.fromhex(salt), n=2 ** 14, r=8, p=1, dklen=32).hex()
+
+
+def _hash_token(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _clean_name(name):
+    name = str(name or "").strip()
+    if not 1 <= len(name) <= 40:
+        raise ValueError("El nombre debe tener entre 1 y 40 caracteres.")
+    return name
+
+
+def _check_pin(pin):
+    pin = str(pin or "")
+    if len(pin) < MIN_PIN:
+        raise ValueError(f"El PIN o contraseña debe tener al menos {MIN_PIN} caracteres.")
+    if len(pin) > 128:
+        raise ValueError("El PIN o contraseña es demasiado largo.")
+    return pin
+
+
+def _user(row):
+    return {"id": row[0], "name": row[1], "isOwner": bool(row[2])} if row else None
+
+
+def has_users():
+    with closing(connect()) as conn:
+        return conn.execute("SELECT 1 FROM user LIMIT 1").fetchone() is not None
+
+
+def list_users():
+    with closing(connect()) as conn:
+        rows = conn.execute("SELECT id, name, is_owner FROM user ORDER BY is_owner DESC, name").fetchall()
+    return [_user(r) for r in rows]
+
+
+def create_user(name, pin, is_owner=False):
+    name = _clean_name(name)
+    pin = _check_pin(pin)
+    salt = secrets.token_hex(16)
+    user_id = uuid.uuid4().hex[:12]
+    with closing(connect()) as conn:
+        if is_owner and conn.execute("SELECT 1 FROM user WHERE is_owner = 1").fetchone():
+            raise ValueError("Ya existe un perfil principal.")
+        try:
+            with conn:
+                conn.execute(
+                    "INSERT INTO user (id, name, pin_hash, salt, is_owner, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (user_id, name, _hash_pin(pin, salt), salt, 1 if is_owner else 0, _now()),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("Ya existe un perfil con ese nombre.") from exc
+    return {"id": user_id, "name": name, "isOwner": bool(is_owner)}
+
+
+def verify(user_id, pin):
+    now = time.time()
+    recent = [t for t in _FAILURES.get(user_id, []) if now - t < LOCK_SECONDS]
+    _FAILURES[user_id] = recent
+    if len(recent) >= MAX_FAILURES:
+        raise TooManyAttempts("Demasiados intentos fallidos. Espera 15 minutos.")
+    with closing(connect()) as conn:
+        row = conn.execute("SELECT pin_hash, salt FROM user WHERE id = ?", (user_id,)).fetchone()
+    ok = bool(row) and hmac.compare_digest(row[0], _hash_pin(str(pin or ""), row[1]))
+    if ok:
+        _FAILURES.pop(user_id, None)
+    else:
+        _FAILURES[user_id].append(now)
+    return ok
+
+
+def change_pin(user_id, old_pin, new_pin):
+    if not verify(user_id, old_pin):
+        raise ValueError("El PIN actual no es correcto.")
+    new_pin = _check_pin(new_pin)
+    salt = secrets.token_hex(16)
+    with closing(connect()) as conn:
+        with conn:
+            conn.execute("UPDATE user SET pin_hash = ?, salt = ? WHERE id = ?", (_hash_pin(new_pin, salt), salt, user_id))
+
+
+def create_session(user_id):
+    token = secrets.token_urlsafe(32)
+    with closing(connect()) as conn:
+        with conn:
+            conn.execute("DELETE FROM session WHERE expires_at < ?", (time.time(),))
+            conn.execute(
+                "INSERT INTO session (token_hash, user_id, expires_at) VALUES (?, ?, ?)",
+                (_hash_token(token), user_id, time.time() + SESSION_DAYS * 86400),
+            )
+    return token
+
+
+def session_user(token):
+    if not token:
+        return None
+    with closing(connect()) as conn:
+        row = conn.execute(
+            "SELECT u.id, u.name, u.is_owner FROM session s JOIN user u ON u.id = s.user_id "
+            "WHERE s.token_hash = ? AND s.expires_at > ?",
+            (_hash_token(token), time.time()),
+        ).fetchone()
+    return _user(row)
+
+
+def delete_session(token):
+    if not token:
+        return
+    with closing(connect()) as conn:
+        with conn:
+            conn.execute("DELETE FROM session WHERE token_hash = ?", (_hash_token(token),))
+
+
+def user_files(user):
+    """Base de datos, carpeta de copias y archivo antiguo de cada perfil."""
+    if user.get("isOwner"):
+        base = OWNER_DIR
+    else:
+        base = PROFILES_DIR / user["id"]
+        base.mkdir(parents=True, exist_ok=True)
+    return base / "atlas.db", base / "backups", base / "reading_progress.json"
+
+
+# --------------------------- caminos compartidos ---------------------------
+
+def list_shared():
+    with closing(connect()) as conn:
+        rows = conn.execute(
+            "SELECT p.id, p.owner_id, p.data, u.name FROM shared_path p "
+            "LEFT JOIN user u ON u.id = p.owner_id ORDER BY p.position, p.updated_at"
+        ).fetchall()
+    return [{**json.loads(r[2]), "id": r[0], "ownerId": r[1], "ownerName": r[3]} for r in rows]
+
+
+def add_shared(path, owner_id):
+    with closing(connect()) as conn:
+        with conn:
+            position = conn.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM shared_path").fetchone()[0]
+            conn.execute(
+                "INSERT OR IGNORE INTO shared_path (id, owner_id, position, data, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (path["id"], owner_id, position, json.dumps(path, ensure_ascii=False), _now()),
+            )
+
+
+def _check_owner(conn, path_id, user_id, verb):
+    row = conn.execute("SELECT owner_id FROM shared_path WHERE id = ?", (path_id,)).fetchone()
+    if row is None:
+        raise KeyError(path_id)
+    if row[0] is not None and row[0] != user_id:
+        raise PermissionError(f"Solo quien creó este camino puede {verb}. Puedes personalizarlo para tener tu propia versión.")
+
+
+def update_shared(path_id, path, user_id):
+    with closing(connect()) as conn:
+        with conn:
+            _check_owner(conn, path_id, user_id, "editarlo")
+            conn.execute(
+                "UPDATE shared_path SET data = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(path, ensure_ascii=False), _now(), path_id),
+            )
+
+
+def delete_shared(path_id, user_id):
+    with closing(connect()) as conn:
+        with conn:
+            _check_owner(conn, path_id, user_id, "eliminarlo")
+            conn.execute("DELETE FROM shared_path WHERE id = ?", (path_id,))
+
+===== ARCHIVO: backend\store.py =====
+
+"""Tus datos personales en SQLite, con historial de cambios, deshacer y copias de seguridad."""
+import copy
+import json
+import shutil
+import sqlite3
+import time
+from contextlib import closing
+from datetime import datetime
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DB_FILE = ROOT / "atlas.db"
+LEGACY_FILE = ROOT / "reading_progress.json"
+BACKUP_DIR = ROOT / "backups"
+
+SCHEMA_VERSION = "1"
+KEEP_BACKUPS = 30
+KEEP_EVENTS = 200
+BACKUP_EVERY_HOURS = 12
+
+BOOK_STATES = ("LOCKED", "DISCOVERED", "READING", "READ")
+TIERS = ("ESSENTIAL", "RECOMMENDED", "SPECIALIZED")
+LIST_MARKS = ("mastered_regions", "mastered_authors", "discovered_regions", "discovered_authors")
+CUSTOM = {"custom_books": "book", "custom_authors": "author", "custom_regions": "region"}
+KNOWN = {"book_statuses", "book_metadata", "tier_overrides", "author_region_additions", "readings", *LIST_MARKS, *CUSTOM}
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS book_state (
+  book_id TEXT PRIMARY KEY,
+  state TEXT NOT NULL CHECK (state IN ('LOCKED', 'DISCOVERED', 'READING', 'READ')),
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS book_metadata (
+  book_id TEXT PRIMARY KEY,
+  data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS custom_record (
+  kind TEXT NOT NULL CHECK (kind IN ('book', 'author', 'region')),
+  id TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  PRIMARY KEY (kind, id)
+);
+CREATE TABLE IF NOT EXISTS mark (
+  kind TEXT NOT NULL,
+  id TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  PRIMARY KEY (kind, id)
+);
+CREATE TABLE IF NOT EXISTS tier_override (
+  region_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  tier TEXT NOT NULL CHECK (tier IN ('ESSENTIAL', 'RECOMMENDED', 'SPECIALIZED')),
+  PRIMARY KEY (region_id, author_id)
+);
+CREATE TABLE IF NOT EXISTS author_region (
+  author_id TEXT NOT NULL,
+  region_id TEXT NOT NULL,
+  PRIMARY KEY (author_id, region_id)
+);
+CREATE TABLE IF NOT EXISTS reading (
+  id TEXT PRIMARY KEY,
+  book_id TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('open', 'done')),
+  started TEXT,
+  finished TEXT,
+  reread INTEGER NOT NULL DEFAULT 0,
+  note TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS event (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL,
+  label TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  snapshot TEXT NOT NULL
+);
+"""
+
+
+def _now():
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def migrated_file():
+    return LEGACY_FILE.with_name("reading_progress.migrated.json")
+
+
+def connect():
+    conn = sqlite3.connect(DB_FILE, timeout=15)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.executescript(SCHEMA)
+    return conn
+
+
+def _set_meta(conn, key, value):
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, value),
+    )
+
+
+def _sanitize(profile):
+    clean = copy.deepcopy(profile)
+    clean["book_statuses"] = {k: v for k, v in clean.get("book_statuses", {}).items() if v in BOOK_STATES}
+    clean["tier_overrides"] = {k: v for k, v in clean.get("tier_overrides", {}).items() if v in TIERS and "::" in k}
+    return clean
+
+
+def _write(conn, profile):
+    now = _now()
+
+    existing = {row[0]: row[1] for row in conn.execute("SELECT book_id, state FROM book_state")}
+    statuses = profile.get("book_statuses", {})
+    for book_id, state in statuses.items():
+        if existing.get(book_id) != state:
+            conn.execute(
+                "INSERT INTO book_state (book_id, state, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(book_id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at",
+                (book_id, state, now),
+            )
+    conn.executemany("DELETE FROM book_state WHERE book_id = ?", [(b,) for b in set(existing) - set(statuses)])
+
+    conn.execute("DELETE FROM book_metadata")
+    conn.executemany(
+        "INSERT INTO book_metadata (book_id, data) VALUES (?, ?)",
+        [(k, json.dumps(v, ensure_ascii=False)) for k, v in profile.get("book_metadata", {}).items()],
+    )
+
+    conn.execute("DELETE FROM custom_record")
+    for key, kind in CUSTOM.items():
+        seen, rows = set(), []
+        for position, record in enumerate(profile.get(key, [])):
+            record_id = str(record.get("id") or f"{kind}-{position}")
+            if record_id in seen:
+                continue
+            seen.add(record_id)
+            rows.append((kind, record_id, position, json.dumps(record, ensure_ascii=False)))
+        conn.executemany("INSERT INTO custom_record (kind, id, position, data) VALUES (?, ?, ?, ?)", rows)
+
+    conn.execute("DELETE FROM mark")
+    for key in LIST_MARKS:
+        ids = list(dict.fromkeys(profile.get(key, [])))
+        conn.executemany("INSERT INTO mark (kind, id, position) VALUES (?, ?, ?)", [(key, i, n) for n, i in enumerate(ids)])
+
+    conn.execute("DELETE FROM tier_override")
+    tier_rows = []
+    for key, tier in profile.get("tier_overrides", {}).items():
+        region_id, _, author_id = key.partition("::")
+        if region_id and author_id:
+            tier_rows.append((region_id, author_id, tier))
+    conn.executemany("INSERT INTO tier_override (region_id, author_id, tier) VALUES (?, ?, ?)", tier_rows)
+
+    conn.execute("DELETE FROM author_region")
+    pairs = {(a, r) for a, regions in profile.get("author_region_additions", {}).items() for r in regions}
+    conn.executemany("INSERT INTO author_region (author_id, region_id) VALUES (?, ?)", sorted(pairs))
+
+    conn.execute("DELETE FROM reading")
+    reading_rows, reading_ids = [], set()
+    for position, item in enumerate(profile.get("readings", [])):
+        reading_id = str(item.get("id") or f"r-{position}")
+        if reading_id in reading_ids:
+            continue
+        reading_ids.add(reading_id)
+        reading_rows.append((reading_id, item["book"], position, item.get("status", "done"), item.get("started"),
+                             item.get("finished"), 1 if item.get("reread") else 0, item.get("note") or ""))
+    conn.executemany(
+        "INSERT INTO reading (id, book_id, position, status, started, finished, reread, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        reading_rows,
+    )
+
+    extra = {k: v for k, v in profile.items() if k not in KNOWN}
+    _set_meta(conn, "extra", json.dumps(extra, ensure_ascii=False))
+
+
+def _read(conn, default):
+    profile = copy.deepcopy(default)
+    profile["book_statuses"] = {r[0]: r[1] for r in conn.execute("SELECT book_id, state FROM book_state")}
+    profile["book_metadata"] = {r[0]: json.loads(r[1]) for r in conn.execute("SELECT book_id, data FROM book_metadata")}
+    for key, kind in CUSTOM.items():
+        profile[key] = [json.loads(r[0]) for r in conn.execute(
+            "SELECT data FROM custom_record WHERE kind = ? ORDER BY position", (kind,))]
+    for key in LIST_MARKS:
+        profile[key] = [r[0] for r in conn.execute("SELECT id FROM mark WHERE kind = ? ORDER BY position", (key,))]
+    profile["tier_overrides"] = {
+        f"{r[0]}::{r[1]}": r[2] for r in conn.execute("SELECT region_id, author_id, tier FROM tier_override")
+    }
+    additions = {}
+    for author_id, region_id in conn.execute("SELECT author_id, region_id FROM author_region ORDER BY author_id, region_id"):
+        additions.setdefault(author_id, []).append(region_id)
+    profile["author_region_additions"] = additions
+    profile["readings"] = [
+        {"id": r[0], "book": r[1], "status": r[2], "started": r[3], "finished": r[4], "reread": bool(r[5]), "note": r[6]}
+        for r in conn.execute("SELECT id, book_id, status, started, finished, reread, note FROM reading ORDER BY position")
+    ]
+    row = conn.execute("SELECT value FROM meta WHERE key = 'extra'").fetchone()
+    if row:
+        profile.update({k: v for k, v in json.loads(row[0]).items() if k not in KNOWN})
+    return profile
+
+
+def _initialize(conn, default):
+    profile = copy.deepcopy(default)
+    source = None
+    if LEGACY_FILE.exists():
+        saved = json.loads(LEGACY_FILE.read_text(encoding="utf-8-sig"))
+        if not isinstance(saved, dict):
+            raise RuntimeError("reading_progress.json no tiene un formato válido.")
+        profile.update(saved)
+        source = LEGACY_FILE.name
+        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(LEGACY_FILE, BACKUP_DIR / f"reading_progress-antes-de-sqlite-{datetime.now():%Y%m%d-%H%M%S}.json")
+    with conn:
+        _write(conn, _sanitize(profile))
+        _set_meta(conn, "schema_version", SCHEMA_VERSION)
+        _set_meta(conn, "created_at", _now())
+        if source:
+            _set_meta(conn, "migrated_from", source)
+    if source:
+        LEGACY_FILE.replace(migrated_file())
+
+
+def load_profile(default):
+    with closing(connect()) as conn:
+        if conn.execute("SELECT 1 FROM meta WHERE key = 'schema_version'").fetchone() is None:
+            _initialize(conn, default)
+        return _read(conn, default)
+
+
+def _summary(before, after):
+    old = before.get("book_statuses", {})
+    new = after.get("book_statuses", {})
+    changes = [{"book": k, "from": old.get(k, "LOCKED"), "to": v} for k, v in new.items() if old.get(k, "LOCKED") != v]
+    return {
+        "books": changes[:20],
+        "customBooks": len(after.get("custom_books", [])) - len(before.get("custom_books", [])),
+    }
+
+
+def save_profile(profile, before, label):
+    maybe_backup()
+    with closing(connect()) as conn:
+        with conn:
+            _write(conn, profile)
+            conn.execute(
+                "INSERT INTO event (at, label, summary, snapshot) VALUES (?, ?, ?, ?)",
+                (_now(), label, json.dumps(_summary(before, profile), ensure_ascii=False), json.dumps(before, ensure_ascii=False)),
+            )
+            conn.execute("DELETE FROM event WHERE id NOT IN (SELECT id FROM event ORDER BY id DESC LIMIT ?)", (KEEP_EVENTS,))
+
+
+def undo_last():
+    with closing(connect()) as conn:
+        row = conn.execute("SELECT id, label, snapshot FROM event ORDER BY id DESC LIMIT 1").fetchone()
+        if row is None:
+            raise ValueError("No hay cambios que deshacer.")
+        with conn:
+            _write(conn, json.loads(row[2]))
+            conn.execute("DELETE FROM event WHERE id = ?", (row[0],))
+        return row[1]
+
+
+def history(limit=30):
+    with closing(connect()) as conn:
+        rows = conn.execute("SELECT id, at, label, summary FROM event ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    return [{"id": r[0], "at": r[1], "label": r[2], "summary": json.loads(r[3])} for r in rows]
+
+
+def backup(reason="auto"):
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    target = BACKUP_DIR / f"atlas-{datetime.now():%Y%m%d-%H%M%S}-{reason}.db"
+    with closing(connect()) as source, closing(sqlite3.connect(target)) as destination:
+        source.backup(destination)
+    for old in sorted(BACKUP_DIR.glob("atlas-*.db"))[:-KEEP_BACKUPS]:
+        old.unlink(missing_ok=True)
+    return target
+
+
+def maybe_backup():
+    if not DB_FILE.exists():
+        return None
+    newest = max((p.stat().st_mtime for p in BACKUP_DIR.glob("atlas-*.db")), default=0) if BACKUP_DIR.exists() else 0
+    if time.time() - newest >= BACKUP_EVERY_HOURS * 3600:
+        return backup("auto")
+    return None
+
+
+def state_timestamps():
+    if not DB_FILE.exists():
+        return {}
+    with closing(connect()) as conn:
+        return {r[0]: r[1] for r in conn.execute("SELECT book_id, updated_at FROM book_state")}
+
+
+def get_meta(key):
+    if not DB_FILE.exists():
+        return None
+    with closing(connect()) as conn:
+        row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+    return row[0] if row else None
+
+
+===== ARCHIVO: backend\main.py =====
+
+import os
+import sqlite3
+from pathlib import Path
+from threading import Lock
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+from backend import accounts, custom_paths, library, store
+from backend.atlas import DEFAULT_PROFILE, Atlas
+
+from backend import wishlist
+
+ROOT = Path(__file__).resolve().parents[1]
+DIST = ROOT / "frontend" / "dist"
+SESSION_COOKIE = "atlas_session"
+SECURE_COOKIES = os.environ.get("ATLAS_SECURE_COOKIES") == "1"
+
+app = FastAPI(title="Atlas literario", docs_url=None, redoc_url=None, openapi_url=None)
+
+# Todas las operaciones se serializan: así cada petición trabaja con la base de datos de su perfil.
+LOCK = Lock()
+
+
+# ------------------------------- sesión -------------------------------
+
+def current_user(request: Request):
+    user = accounts.session_user(request.cookies.get(SESSION_COOKIE))
+    if user is None:
+        raise HTTPException(status_code=401, detail="Inicia sesión para continuar.")
+    return user
+
+
+def activate(user):
+    db_file, backup_dir, legacy_file = accounts.user_files(user)
+    store.DB_FILE = db_file
+    store.BACKUP_DIR = backup_dir
+    store.LEGACY_FILE = legacy_file
+
+
+def open_atlas(user):
+    activate(user)
+    atlas = Atlas()
+    atlas.user_id = user["id"]
+    return atlas
+
+
+def execute(user, action=None, created=False):
+    with LOCK:
+        try:
+            atlas = open_atlas(user)
+            result = action(atlas) if action is not None else None
+            snapshot = atlas.snapshot()
+            snapshot["me"] = user
+            if created:
+                snapshot["createdId"] = result
+            return snapshot
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except (KeyError, IndexError) as exc:
+            raise HTTPException(status_code=404, detail=f"No encontrado: {exc}") from exc
+        except (ValueError, sqlite3.IntegrityError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def set_session(response, user_id):
+    response.set_cookie(
+        SESSION_COOKIE,
+        accounts.create_session(user_id),
+        max_age=accounts.SESSION_DAYS * 86400,
+        httponly=True,
+        samesite="lax",
+        secure=SECURE_COOKIES,
+        path="/",
+    )
+
+
+# ------------------------------- modelos -------------------------------
+
+class ReadingIn(BaseModel):
+    id: str | None = None
+    status: str = "done"
+    started: str | None = None
+    finished: str | None = None
+    reread: bool = False
+    note: str = Field(default="", max_length=500)
+
+
+class BookUpdate(BaseModel):
+    state: str
+    year: int | None = Field(default=None, ge=1000, le=2200)
+    rating: float | None = Field(default=None, ge=0, le=10)
+    reread: bool = False
+    notes: str = Field(default="", max_length=5000)
+    readings: list[ReadingIn] | None = None
+    genre: str | None = None
+
+
+class NewBook(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    author: str = Field(min_length=1, max_length=200)
+    country: str = ""
+    period: str = ""
+    movements: list[str] = []
+    region_ids: list[str] = []
+    state: str = "DISCOVERED"
+
+
+class TierUpdate(BaseModel):
+    region_id: str
+    author_id: str
+    tier: str
+
+
+class PathWorkUpdate(BaseModel):
+    author_id: str
+    work_index: int = Field(ge=0)
+    state: str
+
+
+class CustomPathIn(BaseModel):
+    name: str
+    description: str = ""
+    region_ids: list[str] = []
+    authors: list[dict] = []
+
+
+class SetupIn(BaseModel):
+    name: str
+    pin: str
+
+
+class LoginIn(BaseModel):
+    user_id: str
+    pin: str
+
+
+class PinIn(BaseModel):
+    old: str
+    new: str
+
+
+class UserIn(BaseModel):
+    name: str
+    pin: str
+
+
+# ------------------------------- acceso -------------------------------
+
+@app.get("/api/auth/status")
+def auth_status(request: Request):
+    return {
+        "setup": not accounts.has_users(),
+        "users": [{"id": u["id"], "name": u["name"]} for u in accounts.list_users()],
+        "me": accounts.session_user(request.cookies.get(SESSION_COOKIE)),
+    }
+
+
+@app.post("/api/auth/setup")
+def auth_setup(body: SetupIn, response: Response):
+    with LOCK:
+        if accounts.has_users():
+            raise HTTPException(status_code=409, detail="La aplicación ya está configurada.")
+        try:
+            owner = accounts.create_user(body.name, body.pin, is_owner=True)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        custom_paths.migrate_from_profile(open_atlas(owner))
+    set_session(response, owner["id"])
+    return {"ok": True}
+
+
+@app.post("/api/auth/login")
+def auth_login(body: LoginIn, response: Response):
+    try:
+        ok = accounts.verify(body.user_id, body.pin)
+    except accounts.TooManyAttempts as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    if not ok:
+        raise HTTPException(status_code=401, detail="PIN o contraseña incorrectos.")
+    set_session(response, body.user_id)
+    return {"ok": True}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request, response: Response):
+    accounts.delete_session(request.cookies.get(SESSION_COOKIE))
+    response.delete_cookie(SESSION_COOKIE, path="/")
+    return {"ok": True}
+
+
+@app.post("/api/auth/pin")
+def auth_pin(body: PinIn, user: dict = Depends(current_user)):
+    try:
+        accounts.change_pin(user["id"], body.old, body.new)
+    except accounts.TooManyAttempts as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True}
+
+
+@app.post("/api/auth/users")
+def auth_create_user(body: UserIn, user: dict = Depends(current_user)):
+    if not user["isOwner"]:
+        raise HTTPException(status_code=403, detail="Solo el perfil principal puede crear perfiles.")
+    try:
+        created = accounts.create_user(body.name, body.pin)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"id": created["id"], "name": created["name"]}
+
+
+# ------------------------------- datos -------------------------------
+
+@app.get("/api/state")
+def get_state(user: dict = Depends(current_user)):
+    return execute(user)
+
+
+@app.patch("/api/books/{book_id}")
+def update_book(book_id: str, body: BookUpdate, user: dict = Depends(current_user)):
+    def action(atlas):
+        title = atlas.books_by_id.get(book_id, {}).get("title", book_id)
+        atlas.label = f"Editar «{title}»"
+        atlas.update_book(book_id, body.state, body.year, body.rating, body.reread, body.notes,
+                          None if body.readings is None else [r.model_dump() for r in body.readings],
+                          genre=body.genre)
+    return execute(user, action)
+
+
+@app.post("/api/books")
+def add_book(body: NewBook, user: dict = Depends(current_user)):
+    def action(atlas):
+        atlas.label = f"Añadir «{body.title}»"
+        atlas.add_book(body.title, body.author, body.country, body.period, body.movements, body.region_ids, body.state)
+    return execute(user, action)
+
+
+@app.post("/api/books/{book_id}/reread")
+def reread_book(book_id: str, user: dict = Depends(current_user)):
+    def action(atlas):
+        title = atlas.books_by_id.get(book_id, {}).get("title", book_id)
+        atlas.label = f"Releer «{title}»"
+        atlas.start_reread(book_id)
+    return execute(user, action)
+
+
+@app.put("/api/tiers")
+def set_tier(body: TierUpdate, user: dict = Depends(current_user)):
+    def action(atlas):
+        atlas.label = "Cambiar clasificación"
+        atlas.set_tier(body.region_id, body.author_id, body.tier)
+    return execute(user, action)
+
+
+@app.post("/api/regions/{region_id}/mastery")
+def toggle_mastery(region_id: str, user: dict = Depends(current_user)):
+    def action(atlas):
+        atlas.label = "Exploración profunda"
+        atlas.toggle_region_mastery(region_id)
+    return execute(user, action)
+
+
+@app.post("/api/regions/{region_id}/discover")
+def discover_region(region_id: str, user: dict = Depends(current_user)):
+    def action(atlas):
+        atlas.label = "Descubrir territorio"
+        atlas.discover_region(region_id)
+    return execute(user, action)
+
+
+@app.post("/api/paths/{path_id}/works")
+def set_path_work(path_id: str, body: PathWorkUpdate, user: dict = Depends(current_user)):
+    def action(atlas):
+        atlas.label = "Cambiar estado desde un camino"
+        atlas.set_path_work(path_id, body.author_id, body.work_index, body.state)
+    return execute(user, action)
+
+
+@app.post("/api/recommendations/{book_id}/dismiss")
+def dismiss_recommendation(book_id: str, user: dict = Depends(current_user)):
+    def action(atlas):
+        if book_id not in atlas.books_by_id:
+            raise KeyError(book_id)
+        atlas.label = f"Descartar sugerencia «{atlas.books_by_id[book_id]['title']}»"
+        dismissed = atlas.profile.setdefault("dismissed_recommendations", [])
+        if book_id not in dismissed:
+            dismissed.append(book_id)
+            atlas.save()
+    return execute(user, action)
+
+
+@app.post("/api/paths/custom")
+def create_path(body: CustomPathIn, user: dict = Depends(current_user)):
+    return execute(user, lambda a: custom_paths.create(a, body.model_dump()), created=True)
+
+
+@app.put("/api/paths/custom/{path_id}")
+def update_path(path_id: str, body: CustomPathIn, user: dict = Depends(current_user)):
+    return execute(user, lambda a: custom_paths.update(a, path_id, body.model_dump()), created=True)
+
+
+@app.delete("/api/paths/custom/{path_id}")
+def delete_path(path_id: str, user: dict = Depends(current_user)):
+    return execute(user, lambda a: custom_paths.delete(a, path_id))
+
+
+@app.post("/api/paths/{path_id}/duplicate")
+def duplicate_path(path_id: str, user: dict = Depends(current_user)):
+    return execute(user, lambda a: custom_paths.duplicate(a, path_id), created=True)
+
+
+class CopyIn(BaseModel):
+    title: str = ""
+    author: str = ""
+    isbn: str | None = ""
+    publisher: str | None = ""
+    edition_year: int | None = None
+    language: str | None = ""
+    format: str | None = None
+    house_id: str | None = None
+    owner_id: str | None = None
+    signed: bool = False
+    notes: str | None = ""
+    loan_to: str | None = ""
+    loan_since: str | None = None
+    move_to: str | None = None
+    cover: str | None = ""
+
+
+class HouseIn(BaseModel):
+    name: str
+
+
+class CsvIn(BaseModel):
+    text: str = Field(max_length=5_000_000)
+
+
+class ImportIn(BaseModel):
+    rows: list[dict] = []
+    default_house_id: str
+    default_owner_id: str | None = None
+    lookup_missing: bool = True
+    skip_duplicates: bool = True
+
+
+def library_payload(user):
+    copies = library.list_copies()
+    houses = library.list_houses()
+    users = accounts.list_users()
+    readers = {c["id"]: [] for c in copies}
+    my_books = {}
+    for person in users:
+        atlas = open_atlas(person)
+        for copy_id, book_id in library.match_books(copies, atlas).items():
+            book = atlas.books_by_id.get(book_id)
+            if book is None:
+                continue
+            readers[copy_id].append({"userId": person["id"], "name": person["name"],
+                                     "state": book["state"], "rating": book.get("rating")})
+            if person["id"] == user["id"]:
+                my_books[copy_id] = book_id
+    activate(user)
+    return {
+        "houses": houses,
+        "users": [{"id": u["id"], "name": u["name"]} for u in users],
+        "formats": library.FORMATS,
+        "copies": [{**c, "readers": readers[c["id"]], "myBookId": my_books.get(c["id"])} for c in copies],
+    }
+
+
+def library_call(user, fn=None):
+    with LOCK:
+        try:
+            if fn is not None:
+                fn()
+            return library_payload(user)
+        except (KeyError, IndexError) as exc:
+            raise HTTPException(status_code=404, detail=f"No encontrado: {exc}") from exc
+        except (ValueError, sqlite3.IntegrityError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/library")
+def get_library(user: dict = Depends(current_user)):
+    return library_call(user)
+
+
+@app.post("/api/library/copies")
+def add_copy(body: CopyIn, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.add_copy(body.model_dump(), user["id"]))
+
+
+@app.put("/api/library/copies/{copy_id}")
+def update_copy(copy_id: str, body: CopyIn, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.update_copy(copy_id, body.model_dump()))
+
+
+@app.delete("/api/library/copies/{copy_id}")
+def delete_copy(copy_id: str, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.delete_copy(copy_id))
+
+
+@app.post("/api/library/copies/{copy_id}/arrived")
+def copy_arrived(copy_id: str, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.arrived(copy_id))
+
+
+@app.post("/api/library/houses")
+def add_house(body: HouseIn, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.add_house(body.name))
+
+
+@app.put("/api/library/houses/{house_id}")
+def rename_house(house_id: str, body: HouseIn, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.rename_house(house_id, body.name))
+
+
+@app.delete("/api/library/houses/{house_id}")
+def delete_house(house_id: str, user: dict = Depends(current_user)):
+    return library_call(user, lambda: library.delete_house(house_id))
+
+
+@app.get("/api/isbn/{isbn}")
+def isbn_lookup(isbn: str, user: dict = Depends(current_user)):
+    try:
+        return library.lookup_isbn(isbn)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=exc.args[0] if exc.args else "No encontrado") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/library/import/preview")
+def import_preview(body: CsvIn, user: dict = Depends(current_user)):
+    with LOCK:
+        try:
+            return library.preview_csv(body.text)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/library/import")
+def import_library(body: ImportIn, user: dict = Depends(current_user)):
+    rows = [dict(r) for r in body.rows][:library.MAX_IMPORT]
+    if body.lookup_missing:
+        looked = 0
+        for row in rows:
+            if row.get("title") or not row.get("isbn") or looked >= 300:
+                continue
+            looked += 1
+            try:
+                info = library.lookup_isbn(row["isbn"])
+            except (KeyError, ValueError):
+                continue
+            for key in ("title", "author", "publisher", "edition_year", "language", "cover"):
+                if not row.get(key) and info.get(key):
+                    row[key] = info[key]
+    with LOCK:
+        try:
+            result = library.import_rows(rows, body.default_house_id, body.default_owner_id,
+                                         body.skip_duplicates, user["id"])
+            payload = library_payload(user)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    payload["import"] = result
+    return payload
+
+
+class WishIn(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    author: str = Field(default="", max_length=200)
+    isbn: str = ""
+    publisher: str = ""
+    edition_year: int | None = None
+    language: str = ""
+    cover: str = ""
+    priority: str = "NORMAL"
+    notes: str = Field(default="", max_length=2000)
+
+
+class WishReserveIn(BaseModel):
+    reserved: bool
+
+
+class WishAcquireIn(CopyIn):
+    allow_duplicate: bool = False
+
+
+def wishlist_call(action=None):
+    with LOCK:
+        try:
+            result = action() if action is not None else None
+            payload = {"items": wishlist.list_items()}
+            if result is not None:
+                payload["resultId"] = result
+            return payload
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Deseo no encontrado.") from exc
+        except (ValueError, sqlite3.IntegrityError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/wishlist")
+def get_wishlist(user: dict = Depends(current_user)):
+    return wishlist_call()
+
+
+@app.post("/api/wishlist")
+def add_wish(body: WishIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.create(body.model_dump(), user))
+
+
+@app.put("/api/wishlist/{wish_id}")
+def update_wish(wish_id: str, body: WishIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.update(wish_id, body.model_dump()))
+
+
+@app.delete("/api/wishlist/{wish_id}")
+def delete_wish(wish_id: str, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.delete(wish_id))
+
+
+@app.post("/api/wishlist/{wish_id}/reserve")
+def reserve_wish(wish_id: str, body: WishReserveIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.reserve(wish_id, user, body.reserved))
+
+
+@app.post("/api/wishlist/{wish_id}/acquire")
+def acquire_wish(wish_id: str, body: WishAcquireIn, user: dict = Depends(current_user)):
+    return wishlist_call(lambda: wishlist.acquire(
+        wish_id,
+        body.model_dump(exclude={"allow_duplicate"}),
+        user,
+        body.allow_duplicate,
+    ))
+
+
+@app.post("/api/undo")
+def undo(user: dict = Depends(current_user)):
+    with LOCK:
+        activate(user)
+        try:
+            label = store.undo_last()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        snapshot = open_atlas(user).snapshot()
+        snapshot["me"] = user
+        snapshot["undone"] = label
+        return snapshot
+
+
+@app.get("/api/history")
+def get_history(user: dict = Depends(current_user)):
+    with LOCK:
+        activate(user)
+        return store.history()
+
+
+@app.get("/api/export")
+def export_profile(user: dict = Depends(current_user)):
+    with LOCK:
+        activate(user)
+        profile = store.load_profile(DEFAULT_PROFILE)
+    return JSONResponse(
+        content=profile,
+        headers={"Content-Disposition": 'attachment; filename="atlas-mis-datos.json"'},
+    )
+
+
+if DIST.exists():
+    app.mount("/", StaticFiles(directory=DIST, html=True), name="frontend")
+else:
+    @app.get("/", response_class=HTMLResponse)
+    def frontend_missing():
+        return "<h1>Falta compilar el frontend</h1><p>Ejecuta start.ps1.</p>"
+
+===== ARCHIVO: frontend\src\components\AuthorDrawer.jsx =====
+
+import { useState } from 'react'
+import { ExternalLink, Lock } from 'lucide-react'
+import Cover from './Cover'
+import { Drawer, StateBadge, cx } from './ui'
+
+function Section({ title, children }) {
+  return (
+    <div className="mt-7">
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function Portrait({ src, name }) {
+  const [failed, setFailed] = useState(false)
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+  if (src && !failed) {
+    return <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className="h-20 w-20 shrink-0 rounded-2xl border border-white/10 object-cover" />
+  }
+  return (
+    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl border border-white/10 text-lg font-semibold text-slate-400" style={{ background: 'linear-gradient(160deg,#1E293B,#0F172A)' }}>
+      {initials}
+    </div>
+  )
+}
+
+function AuthorLinks({ ids, data, openAuthor }) {
+  return (
+    <div className="space-y-1">
+      {ids.map(id => {
+        const linked = data.authors[id]
+        if (!linked) return null
+        const locked = linked.state === 'LOCKED'
+        return (
+          <button key={id} type="button" onClick={() => openAuthor(id)} className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-white/[0.04]">
+            <span className={cx('flex items-center gap-2', locked ? 'text-slate-400' : 'text-slate-100')}>
+              {locked && <Lock size={12} className="text-slate-600" />}{linked.name}
+            </span>
+            <StateBadge state={linked.state} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+const formatYear = y => (y < 0 ? `${-y} a. C.` : String(y))
+
+export default function AuthorDrawer({ authorId, data, onClose, openAuthor, editBook }) {
+  const author = data.authors[authorId]
+  if (!author) return null
+
+  const books = data.books
+    .filter(book => book.author === authorId)
+    .sort((a, b) => Number(b.state === 'READ') - Number(a.state === 'READ') || (a.published ?? 9999) - (b.published ?? 9999))
+  const regionsById = Object.fromEntries(data.regions.map(region => [region.id, region]))
+  const readCount = books.filter(book => book.state === 'READ').length
+  const influencedBy = author.influencedBy || []
+  const influenced = author.influenced || []
+  const others = (author.related || []).filter(id => !influencedBy.includes(id) && !influenced.includes(id))
+  const lifespan = author.birth != null
+    ? `${formatYear(author.birth)} – ${author.death != null ? formatYear(author.death) : ''}`
+    : null
+
+  return (
+    <Drawer open title={author.name} subtitle={[author.country, author.period].filter(Boolean).join(' · ')} onClose={onClose}>
+      <div className="flex items-center gap-4">
+        <Portrait src={author.image} name={author.name} />
+        <div className="min-w-0">
+          {lifespan && <div className="text-sm tabular-nums text-slate-300">{lifespan}</div>}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <StateBadge state={author.state} />
+            <span className="text-xs text-slate-500">{readCount} de {books.length} obras del catálogo leídas</span>
+          </div>
+        </div>
+      </div>
+
+      {author.state === 'LOCKED' && (
+        <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/[0.06] p-4 text-sm leading-relaxed text-slate-300">
+          Todavía no has leído a <strong className="text-white">{author.name}</strong>. Puedes marcar cualquiera de sus obras cuando quieras explorarlo.
+        </div>
+      )}
+
+      {author.movements.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {author.movements.map(item => <span key={item} className="rounded-full border border-white/10 px-2.5 py-0.5 text-[11px] text-slate-300">{item}</span>)}
+        </div>
+      )}
+
+      <Section title="Obras">
+        <div className="space-y-1">
+          {books.map(book => (
+            <button key={book.id} type="button" onClick={() => editBook(book.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-white/[0.04]">
+              <Cover src={book.cover} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className={cx('block truncate text-sm', book.state === 'LOCKED' ? 'text-slate-400' : 'text-slate-100')}>{book.title}</span>
+                {book.published && <span className="text-[11px] tabular-nums text-slate-500">{formatYear(book.published)}</span>}
+              </span>
+              <StateBadge state={book.state} />
+            </button>
+          ))}
+          {books.length === 0 && <p className="text-sm text-slate-500">No hay obras de este autor en el catálogo.</p>}
+        </div>
+      </Section>
+
+      {influencedBy.length > 0 && (
+        <Section title="Influido por">
+          <AuthorLinks ids={influencedBy} data={data} openAuthor={openAuthor} />
+        </Section>
+      )}
+
+      {influenced.length > 0 && (
+        <Section title="Influyó en">
+          <AuthorLinks ids={influenced} data={data} openAuthor={openAuthor} />
+        </Section>
+      )}
+
+      {others.length > 0 && (
+        <Section title="Otras conexiones">
+          <AuthorLinks ids={others} data={data} openAuthor={openAuthor} />
+        </Section>
+      )}
+
+      {author.regions.length > 0 && (
+        <Section title="Territorios">
+          <div className="flex flex-wrap gap-2">
+            {author.regions.map(regionId => {
+              const region = regionsById[regionId]
+              if (!region) return null
+              const locked = region.state === 'LOCKED'
+              return (
+                <span key={regionId} className={cx('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs', locked ? 'border-white/5 text-slate-500' : 'border-sky-500/30 bg-sky-500/10 text-sky-200')}>
+                  {locked && <Lock size={11} />}{region.name}
+                </span>
+              )
+            })}
+          </div>
+        </Section>
+      )}
+
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4 text-[11px] text-slate-500">
+        <span>Biografía e influencias: Wikidata · Portadas: Open Library</span>
+        {author.qid && (
+          <a href={`https://www.wikidata.org/wiki/${author.qid}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-sky-300">
+            Ver en Wikidata<ExternalLink size={11} />
+          </a>
+        )}
+      </div>
+    </Drawer>
+  )
+}
+
+===== ARCHIVO: frontend\src\components\BookModal.jsx =====
+
+import { useState } from 'react'
+import { MapPin, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { api } from '../api'
+import Cover from './Cover'
+import { Button, Field, Modal, Segmented, STATE_META, STATE_ORDER, cx, inputClass } from './ui'
+import { GENRE_META, GENRES } from '../lib/genres'
+
+const DATE_RE = /^\d{4}(-\d{2}){0,2}$/
+
+function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+let tempId = 0
+const blank = (extra = {}) => ({ id: `new-${++tempId}`, status: 'done', started: '', finished: '', reread: false, note: '', ...extra })
+
+function DateInput({ value, onChange, disabled }) {
+  return (
+    <div className="flex gap-1">
+      <input
+        className={cx(inputClass, 'tabular-nums')}
+        value={value}
+        disabled={disabled}
+        placeholder={disabled ? 'En curso' : 'AAAA-MM-DD'}
+        onChange={event => onChange(event.target.value)}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onChange(today())}
+        className="shrink-0 rounded-lg border border-white/10 px-2 text-[11px] text-slate-400 transition hover:text-sky-300 disabled:opacity-40"
+      >
+        Hoy
+      </button>
+    </div>
+  )
+}
+
+export default function BookModal({ book, run, onClose, shelf }) {
+  const [state, setState] = useState(book.state)
+  const [rating, setRating] = useState(book.rating ?? '')
+  const [notes, setNotes] = useState(book.notes || '')
+  const [genre, setGenre] = useState(book.genreSource === 'user' ? book.genre : '')
+  const [readings, setReadings] = useState(() =>
+    (book.readings || []).map(r => ({ ...r, started: r.started || '', finished: r.finished || '', note: r.note || '' })))
+  const [error, setError] = useState('')
+
+  const update = (id, patch) => setReadings(list => list.map(r => (r.id === id ? { ...r, ...patch } : r)))
+  const remove = id => setReadings(list => list.filter(r => r.id !== id))
+
+  const changeState = next => {
+    setState(next)
+    setReadings(list => {
+      const open = list.find(r => r.status === 'open')
+      if (next === 'READING' && !open) {
+        return [...list, blank({ status: 'open', started: today(), reread: list.some(r => r.status === 'done') })]
+      }
+      if (next === 'READ' && open) {
+        return list.map(r => (r === open ? { ...r, status: 'done', finished: r.finished || today() } : r))
+      }
+      if ((next === 'LOCKED' || next === 'DISCOVERED') && open) return list.filter(r => r !== open)
+      return list
+    })
+  }
+
+  const submit = async () => {
+    const parsedRating = String(rating).trim() === '' ? null : Number(String(rating).replace(',', '.'))
+    if (parsedRating !== null && (Number.isNaN(parsedRating) || parsedRating < 0 || parsedRating > 10)) {
+      setError('La nota debe estar entre 0 y 10.')
+      return
+    }
+    for (const r of readings) {
+      for (const value of [r.started, r.finished]) {
+        if (value && !DATE_RE.test(value.trim())) {
+          setError(`Fecha no válida: «${value}». Usa AAAA, AAAA-MM o AAAA-MM-DD.`)
+          return
+        }
+      }
+    }
+    if (readings.filter(r => r.status === 'open').length > 1) {
+      setError('Solo puede haber una lectura en curso.')
+      return
+    }
+    const ok = await run(() => api.updateBook(book.id, {
+      state,
+      year: book.year ?? null,
+      rating: parsedRating,
+      reread: false,
+      notes,
+      genre,
+      readings: readings.map(r => ({
+        id: String(r.id).startsWith('new-') ? null : r.id,
+        status: r.status,
+        started: r.started.trim() || null,
+        finished: r.status === 'open' ? null : (r.finished.trim() || null),
+        reread: Boolean(r.reread),
+        note: r.note || '',
+      })),
+    }), 'Lectura actualizada')
+    if (ok) onClose()
+  }
+
+  const canReread = book.state === 'READ' && !(book.readings || []).some(r => r.status === 'open')
+  const reread = async () => {
+    const ok = await run(() => api.reread(book.id), `Empiezas a releer «${book.title}»`)
+    if (ok) onClose()
+  }
+
+  return (
+    <Modal
+      open
+      title={book.title}
+      subtitle={book.authorName}
+      onClose={onClose}
+      width="max-w-2xl"
+      footer={
+        <>
+          {canReread && <Button variant="ghost" onClick={reread} className="mr-auto"><RotateCcw size={14} />Releer</Button>}
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" onClick={submit}>Guardar cambios</Button>
+        </>
+      }
+    >
+      <div className="mb-5 flex items-center gap-4">
+        <Cover src={book.cover} size="md" />
+        <div className="text-xs leading-relaxed text-slate-400">
+          {book.published ? <div>Publicada en {book.published}</div> : null}
+          <div>{book.authorName}</div>
+          {book.readCount > 0 && <div>{book.readCount === 1 ? 'Leída una vez' : `Leída ${book.readCount} veces`}</div>}
+          {(shelf || []).map(c => (
+            <div key={c.id} className="mt-1 inline-flex items-center gap-1.5 text-sky-300">
+              <MapPin size={12} />En {c.houseName}{c.ownerName ? ` · de ${c.ownerName}` : ''}{c.loanTo ? ` · prestado a ${c.loanTo}` : ''}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Field as="div" label="Estado">
+        <Segmented value={state} onChange={changeState} options={STATE_ORDER.map(s => ({ value: s, label: STATE_META[s].label }))} />
+      </Field>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-[160px_1fr]">
+        <Field label="Nota (0–10)">
+          <input className={inputClass} inputMode="decimal" value={rating} onChange={e => setRating(e.target.value)} placeholder="8.5" />
+        </Field>
+        <Field label="Tipo de obra">
+          <select className={inputClass} value={genre} onChange={e => setGenre(e.target.value)}>
+            <option value="">
+              {book.genreSource && book.genreSource !== 'user' && book.genre
+                ? `Automático (${GENRE_META[book.genre].label})`
+                : book.genreSource === 'user' ? 'Automático' : 'Automático (sin clasificar)'}
+            </option>
+            {GENRES.map(key => <option key={key} value={key}>{GENRE_META[key].label}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      <div className="mt-6">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-300">Lecturas</span>
+          <button type="button" onClick={() => setReadings(list => [...list, blank({ finished: today() })])} className="inline-flex items-center gap-1 text-xs text-slate-400 transition hover:text-sky-300">
+            <Plus size={12} />Añadir lectura
+          </button>
+        </div>
+        {readings.length === 0 && (
+          <p className="rounded-lg border border-white/5 px-3 py-3 text-xs text-slate-500">
+            Sin lecturas registradas. Se crean solas al marcar «Leyendo» o «Leído».
+          </p>
+        )}
+        <div className="space-y-2">
+          {readings.map(r => (
+            <div key={r.id} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <Field as="div" label="Inicio">
+                <DateInput value={r.started} onChange={v => update(r.id, { started: v })} />
+              </Field>
+              <Field as="div" label="Fin">
+                <DateInput value={r.status === 'open' ? '' : r.finished} disabled={r.status === 'open'} onChange={v => update(r.id, { finished: v })} />
+              </Field>
+              <button type="button" aria-label="Eliminar lectura" onClick={() => remove(r.id)} className="mb-0.5 rounded-md p-2 text-slate-500 transition hover:bg-white/5 hover:text-rose-300">
+                <Trash2 size={14} />
+              </button>
+              <div className="col-span-3 flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                <label className="inline-flex items-center gap-1.5">
+                  <input type="checkbox" className="accent-sky-500" checked={r.status === 'open'} onChange={e => update(r.id, { status: e.target.checked ? 'open' : 'done', finished: e.target.checked ? '' : r.finished })} />
+                  En curso
+                </label>
+                <label className="inline-flex items-center gap-1.5">
+                  <input type="checkbox" className="accent-sky-500" checked={Boolean(r.reread)} onChange={e => update(r.id, { reread: e.target.checked })} />
+                  Relectura
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">Puedes poner fechas aproximadas: 2024, 2024-05 o 2024-05-17.</p>
+      </div>
+
+      <Field label="Notas personales" className="mt-5">
+        <textarea className={cx(inputClass, 'h-28 resize-none py-2')} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Personajes, impresiones, citas…" />
+      </Field>
+
+      {error && <p className="mt-4 text-xs text-amber-400">{error}</p>}
+    </Modal>
+  )
+}
+
+===== ARCHIVO: frontend\src\App.jsx =====
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AlertTriangle, BookCopy, BookMarked, Fingerprint, Globe, LayoutDashboard, Library, Loader2, Map as MapIcon, Route, Search } from 'lucide-react'
+import { api } from './api'
+import Overview from './pages/Overview'
+import WorldPage from './pages/WorldPage'
+import StatsPage from './pages/StatsPage'
+import ShelvesPage from './pages/ShelvesPage'
+import MapPage from './pages/MapPage'
+import PathsPage from './pages/PathsPage'
+import LibraryPage from './pages/LibraryPage'
+import AuthorDrawer from './components/AuthorDrawer'
+import BookModal from './components/BookModal'
+import CommandPalette from './components/CommandPalette'
+import ProfileMenu from './components/ProfileMenu'
+import { CompassModal, DiscoveryModal } from './components/DiscoveryModal'
+import { detectDiscovery } from './lib/discovery'
+import { useHashRoute } from './lib/router'
+import { ProgressBar, Toast, cx } from './components/ui'
+
+const NAV = [
+  { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
+  { id: 'world', label: 'Mundo', icon: Globe },
+  { id: 'map', label: 'Territorios', icon: MapIcon },
+  { id: 'paths', label: 'Caminos', icon: Route },
+  { id: 'library', label: 'Biblioteca', icon: Library },
+  { id: 'shelves', label: 'Estanterías', icon: BookCopy },
+  { id: 'stats', label: 'ADN lector', icon: Fingerprint },
+]
+
+const PAGES = { overview: Overview, world: WorldPage, map: MapPage, paths: PathsPage, library: LibraryPage, shelves: ShelvesPage, stats: StatsPage }
+
+const isTyping = target =>
+  target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
+
+export default function App() {
+  const [route, navigate] = useHashRoute()
+  const [data, setData] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+  const [toast, setToast] = useState(null)
+  const [discovery, setDiscovery] = useState(null)
+  const [compassAnchor, setCompassAnchor] = useState(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const dataRef = useRef(null)
+  const depth = useRef(0)
+
+  const page = PAGES[route.page] ? route.page : 'overview'
+
+  useEffect(() => {
+    api.state()
+      .then(next => { dataRef.current = next; setData(next) })
+      .catch(error => setLoadError(error.message))
+  }, [])
+
+  useEffect(() => {
+    if (!toast) return undefined
+    const timer = setTimeout(() => setToast(null), toast.action ? 6000 : 2600)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  // Cuando no hay nada abierto, el historial interno vuelve a cero.
+  useEffect(() => {
+    if (!route.author && !route.book && !(route.page === 'map' && route.sub)) depth.current = 0
+  }, [route])
+
+  useEffect(() => {
+    const item = NAV.find(n => n.id === page)
+    document.title = `${item ? item.label : 'Atlas'} · Atlas literario`
+  }, [page])
+
+  useEffect(() => {
+    const onKey = event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteOpen(open => !open)
+      } else if (event.key === '/' && !isTyping(event.target)) {
+        event.preventDefault()
+        setPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const undoRef = useRef(null)
+  const undo = useCallback(async () => {
+    setToast(null)
+    setDiscovery(null)
+    try {
+      const next = await api.undo()
+      dataRef.current = next
+      setData(next)
+      setToast({ kind: 'success', message: `Deshecho: ${next.undone}` })
+    } catch (error) {
+      setToast({ kind: 'error', message: error.message })
+    }
+  }, [])
+  undoRef.current = undo
+
+  const run = useCallback(async (action, message) => {
+    const before = dataRef.current
+    try {
+      const next = await action()
+      dataRef.current = next
+      setData(next)
+      const found = before ? detectDiscovery(before, next) : null
+      if (found) setDiscovery(found)
+      else if (message) setToast({ kind: 'success', message, action: { label: 'Deshacer', onClick: () => undoRef.current() } })
+      return true
+    } catch (error) {
+      setToast({ kind: 'error', message: error.message })
+      return false
+    }
+  }, [])
+
+  // Las fichas y paneles se apilan en el historial: "atrás" los cierra en orden.
+  const openOverlay = useCallback(patch => {
+    depth.current += 1
+    navigate(patch)
+  }, [navigate])
+
+  const closeOverlay = useCallback(patch => {
+    if (depth.current > 0) {
+      depth.current -= 1
+      window.history.back()
+    } else {
+      navigate(patch, { replace: true })
+    }
+  }, [navigate])
+
+  const goPage = useCallback(id => navigate({ page: id, sub: null, author: null, book: null }), [navigate])
+  const openAuthor = useCallback(id => openOverlay({ author: id, book: null }), [openOverlay])
+  const closeAuthor = useCallback(() => closeOverlay({ author: null, book: null }), [closeOverlay])
+  const editBook = useCallback(id => openOverlay({ book: id }), [openOverlay])
+  const closeBook = useCallback(() => closeOverlay({ book: null }), [closeOverlay])
+  const openRegion = useCallback(id => openOverlay({ page: 'map', sub: id }), [openOverlay])
+  const closeRegion = useCallback(() => closeOverlay({ sub: null }), [closeOverlay])
+  const setSub = useCallback((sub, options) => navigate({ sub }, options), [navigate])
+  const closeDiscovery = useCallback(() => setDiscovery(null), [])
+  const closeCompass = useCallback(() => setCompassAnchor(null), [])
+  const closePalette = useCallback(() => setPaletteOpen(false), [])
+
+  const exploreAuthor = useCallback(id => {
+    setDiscovery(null)
+    setCompassAnchor(null)
+    openAuthor(id)
+  }, [openAuthor])
+
+  const exploreRegion = useCallback(id => {
+    setDiscovery(null)
+    setCompassAnchor(null)
+    depth.current = 1
+    navigate({ page: 'map', sub: id, author: null, book: null })
+  }, [navigate])
+
+  const handleCommand = useCallback(entry => {
+    setPaletteOpen(false)
+    if (entry.type === 'page') goPage(entry.id)
+    else if (entry.type === 'author') openAuthor(entry.id)
+    else if (entry.type === 'book') editBook(entry.id)
+    else if (entry.type === 'region') exploreRegion(entry.id)
+    else if (entry.type === 'path') navigate({ page: 'paths', sub: entry.id, author: null, book: null })
+    else if (entry.id === 'compass') setCompassAnchor({ regionId: null })
+    else if (entry.id === 'add-book') navigate({ page: 'library', sub: 'nueva', author: null, book: null })
+  }, [goPage, openAuthor, editBook, exploreRegion, navigate])
+
+  if (loadError) {
+    return (
+      <div className="grid h-full place-items-center p-8">
+        <div className="max-w-md text-center">
+          <AlertTriangle className="mx-auto mb-3 text-amber-400" />
+          <h1 className="text-lg font-semibold text-white">No se pudo conectar con el backend</h1>
+          <p className="mt-2 text-sm text-slate-400">{loadError}</p>
+          <p className="mt-4 text-xs text-slate-500">Arranca la aplicación con start.ps1.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return <div className="grid h-full place-items-center text-slate-400"><Loader2 className="animate-spin" /></div>
+  }
+
+  const Page = PAGES[page]
+  const book = route.book ? data.books.find(item => item.id === route.book) : null
+  const ctx = {
+    data,
+    run,
+    go: goPage,
+    openAuthor,
+    editBook,
+    openCompass: setCompassAnchor,
+    routeSub: route.sub,
+    setSub,
+    openRegion,
+    closeRegion,
+  }
+  const { summary } = data
+
+  return (
+    <div className="flex h-full">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0A111F]/90 px-4 py-6">
+        <div className="mb-6 flex items-center gap-3 px-2">
+          <div className="grid h-9 w-9 place-items-center rounded-xl text-white shadow-lg shadow-blue-600/30" style={{ background: 'linear-gradient(135deg,#2563EB,#0EA5E9)' }}>
+            <BookMarked size={18} />
+          </div>
+          <div>
+            <div className="text-sm font-semibold tracking-wide text-white">Atlas</div>
+            <div className="text-[11px] text-slate-500">Exploración literaria</div>
+          </div>
+        </div>
+
+        <ProfileMenu me={data.me} />
+
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="mb-6 flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-400 transition hover:border-white/20 hover:text-slate-200"
+        >
+          <Search size={14} />Buscar…
+          <kbd className="ml-auto rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-slate-400">Ctrl K</kbd>
+        </button>
+
+        <nav className="space-y-1">
+          {NAV.map(item => {
+            const Icon = item.icon
+            const active = page === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => goPage(item.id)}
+                className={cx(
+                  'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition',
+                  active ? 'bg-white/[0.07] text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200',
+                )}
+              >
+                <Icon size={16} className={active ? 'text-sky-400' : ''} />
+                {item.label}
+                {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-sky-400" />}
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="mt-auto rounded-xl border border-white/5 bg-white/[0.02] p-4">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Tu atlas</div>
+          <div className="mt-2 text-2xl font-semibold text-white tabular-nums">
+            {summary.regionsUnlocked}<span className="text-sm font-normal text-slate-500"> / {summary.regionsTotal}</span>
+          </div>
+          <div className="text-xs text-slate-400">territorios desbloqueados</div>
+          <ProgressBar value={summary.regionsUnlocked / Math.max(1, summary.regionsTotal)} className="mt-3" />
+          <p className="mt-3 text-[11px] leading-relaxed text-slate-500">Sin rutas obligatorias: tú decides hacia dónde explorar.</p>
+          <a href="/api/export" download className="mt-3 inline-flex text-[11px] text-slate-400 transition hover:text-sky-300">Exportar mis datos (JSON)</a>
+        </div>
+      </aside>
+
+      <main className="flex-1 overflow-y-auto">
+        <div key={page} className="fade-in mx-auto max-w-7xl px-10 py-10">
+          <Page {...ctx} />
+        </div>
+      </main>
+
+      {route.author && <AuthorDrawer authorId={route.author} {...ctx} onClose={closeAuthor} />}
+      {book && <BookModal key={book.id} book={book} run={run} onClose={closeBook} shelf={data.shelf?.byBook?.[book.id]} />}
+      {discovery && <DiscoveryModal discovery={discovery} data={data} onClose={closeDiscovery} onAuthor={exploreAuthor} onRegion={exploreRegion} onUndo={undo} />}
+      {compassAnchor && <CompassModal anchor={compassAnchor} data={data} onClose={closeCompass} onAuthor={exploreAuthor} onRegion={exploreRegion} />}
+      <CommandPalette open={paletteOpen} data={data} onClose={closePalette} onSelect={handleCommand} />
+      {toast && <Toast {...toast} />}
+    </div>
+  )
+}

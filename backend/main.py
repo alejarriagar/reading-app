@@ -1,3 +1,4 @@
+from fastapi.middleware.gzip import GZipMiddleware
 import os
 import base64
 import binascii
@@ -24,6 +25,7 @@ SESSION_COOKIE = "atlas_session"
 SECURE_COOKIES = os.environ.get("ATLAS_SECURE_COOKIES") == "1"
 
 app = FastAPI(title="Atlas literario", docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # Todas las operaciones se serializan: así cada petición trabaja con la base de datos de su perfil.
 LOCK = Lock()

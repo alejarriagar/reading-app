@@ -18,3 +18,5 @@ atlas.db-wal
 atlas.db-shm
 backups/
 .pytest_cache/
+data/
+*.xlsx
